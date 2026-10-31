@@ -1,5 +1,4 @@
 import { DurableObject } from 'cloudflare:workers';
-import starterCards from '../public/seed-cards.js';
 
 export class PoisonBugStore extends DurableObject {
   constructor(ctx, env) {
@@ -43,25 +42,10 @@ export class PoisonBugStore extends DurableObject {
       this.sql.exec(`ALTER TABLE cards ADD COLUMN finish TEXT NOT NULL DEFAULT 'Holo Foil'`);
     }
 
-    const seeded = [...this.sql.exec(`SELECT value FROM settings WHERE key = 'seeded_pokemon_v2'`)];
-    if (seeded.length === 0) {
-      this.sql.exec(`DELETE FROM cards WHERE id LIKE 'starter-%'`);
-      for (const c of starterCards) {
-        this.sql.exec(
-          `INSERT OR IGNORE INTO cards (id, name, price, grade, finish, description, image_data, sold, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          c.id,
-          c.name,
-          c.price,
-          c.grade,
-          c.finish,
-          c.description,
-          c.imageData,
-          c.sold ? 1 : 0,
-          c.createdAt
-        );
-      }
-      this.sql.exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ('seeded_pokemon_v2', '1')`);
+    const cleared = [...this.sql.exec(`SELECT value FROM settings WHERE key = 'cleared_unlisted_v3'`)];
+    if (cleared.length === 0) {
+      this.sql.exec(`DELETE FROM cards WHERE id LIKE 'starter-%' OR id LIKE 'poke-%'`);
+      this.sql.exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ('cleared_unlisted_v3', '1')`);
     }
   }
 

@@ -2,7 +2,6 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
-const starterCards = require('./public/seed-cards.js');
 
 const PORT = Number(process.env.PORT || 3000);
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -22,28 +21,11 @@ if (!cols.includes('finish')) {
   db.exec(`ALTER TABLE cards ADD COLUMN finish TEXT NOT NULL DEFAULT 'Holo Foil'`);
 }
 
-// Seed real Pokémon cards and remove any old placeholder cards
-const seededPokemonRow = db.prepare(`SELECT value FROM settings WHERE key = 'seeded_pokemon_v2'`).get();
-if (!seededPokemonRow) {
-  db.exec(`DELETE FROM cards WHERE id LIKE 'starter-%'`);
-  const insertCard = db.prepare(`
-    INSERT OR IGNORE INTO cards (id, name, price, grade, finish, description, image_data, sold, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  for (const c of starterCards) {
-    insertCard.run(
-      c.id,
-      c.name,
-      c.price,
-      c.grade,
-      c.finish,
-      c.description,
-      c.imageData,
-      c.sold ? 1 : 0,
-      c.createdAt
-    );
-  }
-  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('seeded_pokemon_v2', '1')`).run();
+// Ensure no unlisted starter/demo cards remain — only owner-listed cards appear for sale
+const clearedUnlistedRow = db.prepare(`SELECT value FROM settings WHERE key = 'cleared_unlisted_v3'`).get();
+if (!clearedUnlistedRow) {
+  db.exec(`DELETE FROM cards WHERE id LIKE 'starter-%' OR id LIKE 'poke-%'`);
+  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('cleared_unlisted_v3', '1')`).run();
 }
 
 const MIME_TYPES = {
