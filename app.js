@@ -84,30 +84,22 @@
     ensureSeeded() {
       if (this.seedPromise) return this.seedPromise;
       this.seedPromise = (async () => {
-        const seededPokemon = await this.idbGet('settings', 'seeded_pokemon_v2');
-        if (!seededPokemon) {
+        const clearedUnlisted = await this.idbGet('settings', 'cleared_unlisted_v3');
+        if (!clearedUnlisted) {
           const existingPinRec = await this.idbGet('settings', 'owner_pin');
           const pinToKeep = existingPinRec && existingPinRec.value ? existingPinRec.value : DEFAULT_PIN;
+          const allExisting = await this.idbGetAll('cards');
           const db = await this.open();
-          const starters = window.POISONBUG_STARTER_CARDS || [];
-          const oldPlaceholderIds = [
-            'starter-venom-beetle',
-            'starter-emerald-mantis',
-            'starter-amethyst-drake',
-            'starter-crystal-moth'
-          ];
           await new Promise((resolve, reject) => {
             const t = db.transaction(['cards', 'settings'], 'readwrite');
             const cardStore = t.objectStore('cards');
             const setStore = t.objectStore('settings');
-            for (const oldId of oldPlaceholderIds) {
-              cardStore.delete(oldId);
+            for (const c of allExisting) {
+              if (c.id && (c.id.startsWith('starter-') || c.id.startsWith('poke-'))) {
+                cardStore.delete(c.id);
+              }
             }
-            for (const c of starters) {
-              cardStore.put({ ...c });
-            }
-            setStore.put({ key: 'seeded', value: '1' });
-            setStore.put({ key: 'seeded_pokemon_v2', value: '1' });
+            setStore.put({ key: 'cleared_unlisted_v3', value: '1' });
             setStore.put({ key: 'owner_pin', value: pinToKeep });
             t.oncomplete = () => resolve();
             t.onerror = () => reject(t.error);
@@ -507,17 +499,17 @@
     const available = state.cards.filter((c) => !c.sold);
     const countEl = document.getElementById('hero-available-count');
     if (available.length === 0) {
-      countEl.textContent = 'Waiting for new owner listings';
+      countEl.textContent = 'No cards listed yet — Owner listings appear here!';
     } else if (available.length === 1) {
-      countEl.textContent = '1 Collectible Card Available Now';
+      countEl.textContent = '1 Card Listed For Sale Now';
     } else {
-      countEl.textContent = `${available.length} Collectible Cards For Sale`;
+      countEl.textContent = `${available.length} Cards Listed For Sale`;
     }
 
     const stack = document.getElementById('showcase-stack');
-    const showcaseCards = (available.length ? available : state.cards).slice(0, 3);
+    const showcaseCards = available.slice(0, 3);
     if (showcaseCards.length === 0) {
-      stack.innerHTML = `<div class="showcase-mini-card" style="display:grid;place-items:center;padding:16px;text-align:center;color:#c084fc;font-weight:700;">🪲 List your first card!</div>`;
+      stack.innerHTML = `<div class="showcase-mini-card" style="display:grid;place-items:center;padding:18px;text-align:center;color:#d8b4fe;font-weight:700;line-height:1.45;"><div><div style="font-size:2rem;margin-bottom:8px;">🃏</div>No cards listed yet<br/><span style="font-size:0.78rem;color:#9e8cc4;font-weight:600;">Click "List a Card" to add your first card!</span></div></div>`;
       return;
     }
     stack.innerHTML = showcaseCards
@@ -578,6 +570,9 @@
 
     const grid = document.getElementById('cards-grid');
     const emptyState = document.getElementById('empty-state');
+    const emptyTitle = document.getElementById('empty-title');
+    const emptySubtitle = document.getElementById('empty-subtitle');
+    const emptyResetBtn = document.getElementById('empty-reset-btn');
     const searchBanner = document.getElementById('search-status-banner');
     const searchText = document.getElementById('search-status-text');
 
@@ -593,6 +588,19 @@
 
     if (filtered.length === 0) {
       grid.innerHTML = '';
+      if (state.cards.length === 0) {
+        emptyTitle.textContent = 'No cards for sale right now';
+        emptySubtitle.textContent = 'Cards will appear here as soon as the shop owner lists them!';
+        emptyResetBtn.classList.add('hidden');
+      } else if (state.filter === 'available' && !state.searchQuery.trim()) {
+        emptyTitle.textContent = 'All listed cards have sold out!';
+        emptySubtitle.textContent = 'Check the Sold tab or wait for the owner to list new cards.';
+        emptyResetBtn.classList.remove('hidden');
+      } else {
+        emptyTitle.textContent = 'No matching cards found';
+        emptySubtitle.textContent = 'Try searching for another card name or clearing your filters.';
+        emptyResetBtn.classList.remove('hidden');
+      }
       emptyState.classList.remove('hidden');
       return;
     }
