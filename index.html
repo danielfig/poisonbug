@@ -6,7 +6,7 @@
   <title>PoisonBug — Collectible Card Shop</title>
   <meta name="description" content="PoisonBug Card Shop — Browse, search, and buy collectible cards listed by the owner." />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=2" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
 </head>
 <body>
   <!-- VERY VERY TOP OF THE SCREEN: THE LITTLE PURPLE BUG -->
@@ -337,21 +337,41 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="card-rarity-input">Rarity / Condition</label>
-            <select id="card-rarity-input">
-              <option value="Mint">Mint</option>
-              <option value="Near Mint">Near Mint</option>
-              <option value="Holo Rare" selected>Holo Rare</option>
-              <option value="Ultra Rare">Ultra Rare</option>
-              <option value="Secret Rare">Secret Rare</option>
-              <option value="Good Condition">Good Condition</option>
-            </select>
+          <div class="form-row-equal">
+            <div class="form-group">
+              <label for="card-grade-input">Card Grade <span class="req">* (Required)</span></label>
+              <select id="card-grade-input" required>
+                <option value="" selected disabled>Select grade...</option>
+                <option value="Gem Mint">Gem Mint</option>
+                <option value="Mint">Mint</option>
+                <option value="Near Mint">Near Mint</option>
+                <option value="Lightly Played">Lightly Played</option>
+                <option value="Moderately Played">Moderately Played</option>
+                <option value="Heavily Played">Heavily Played</option>
+                <option value="Damaged">Damaged</option>
+              </select>
+              <p class="form-error hidden" id="grade-error">Please select the card grade (Mint, Near Mint, etc.)!</p>
+            </div>
+
+            <div class="form-group">
+              <label for="card-finish-input">Foil / Card Finish <span class="req">* (Required)</span></label>
+              <select id="card-finish-input" required>
+                <option value="" selected disabled>Select foil or normal...</option>
+                <option value="Normal (Non-Foil)">Normal (Non-Foil)</option>
+                <option value="Holo Foil">Holo Foil</option>
+                <option value="Reverse Holo">Reverse Holo</option>
+                <option value="Full Art Foil">Full Art Foil</option>
+                <option value="Textured / Special Illustration Foil">Textured / Special Illustration Foil</option>
+                <option value="Radiant / Sparkle Foil">Radiant / Sparkle Foil</option>
+                <option value="Gold / Hyper Foil">Gold / Hyper Foil</option>
+              </select>
+              <p class="form-error hidden" id="finish-error">Please select if the card is Foil, Reverse Holo, Normal, etc.!</p>
+            </div>
           </div>
 
           <div class="form-group">
             <label for="card-desc-input">Card Details (Optional)</label>
-            <textarea id="card-desc-input" rows="2" maxlength="240" placeholder="Describe foil shine, edition, or condition..."></textarea>
+            <textarea id="card-desc-input" rows="2" maxlength="240" placeholder="Set name, card number, sleeve info..."></textarea>
           </div>
 
           <p class="form-error hidden" id="list-form-error"></p>
@@ -372,9 +392,12 @@
                 <span>🖼️</span>
                 <p>Upload an image to preview your card</p>
               </div>
-              <span class="rarity-badge" id="preview-rarity">Holo Rare</span>
+              <span class="rarity-badge" id="preview-grade">Grade?</span>
             </div>
             <div class="card-body">
+              <div class="card-meta-tags">
+                <span class="finish-pill" id="preview-finish">Foil / Normal?</span>
+              </div>
               <h4 class="card-title" id="preview-name">Your Card Name</h4>
               <p class="card-desc" id="preview-desc">Card details will appear here.</p>
               <div class="card-price-row revealed">
@@ -468,7 +491,10 @@
           <img id="zoom-card-img" src="" alt="" />
         </div>
         <div class="zoom-details">
-          <span class="rarity-badge" id="zoom-card-rarity"></span>
+          <div class="zoom-badges-row">
+            <span class="rarity-badge" id="zoom-card-grade"></span>
+            <span class="finish-pill" id="zoom-card-finish"></span>
+          </div>
           <h3 id="zoom-card-title"></h3>
           <p id="zoom-card-desc"></p>
           <div class="zoom-price-box">
@@ -495,7 +521,7 @@
   <!-- TOAST NOTIFICATION -->
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="./seed-cards.js?v=2"></script>
-  <script src="./app.js?v=2"></script>
+  <script src="./seed-cards.js?v=3"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>

@@ -84,19 +84,31 @@
     ensureSeeded() {
       if (this.seedPromise) return this.seedPromise;
       this.seedPromise = (async () => {
-        const seededRec = await this.idbGet('settings', 'seeded');
-        if (!seededRec) {
+        const seededPokemon = await this.idbGet('settings', 'seeded_pokemon_v2');
+        if (!seededPokemon) {
+          const existingPinRec = await this.idbGet('settings', 'owner_pin');
+          const pinToKeep = existingPinRec && existingPinRec.value ? existingPinRec.value : DEFAULT_PIN;
           const db = await this.open();
           const starters = window.POISONBUG_STARTER_CARDS || [];
+          const oldPlaceholderIds = [
+            'starter-venom-beetle',
+            'starter-emerald-mantis',
+            'starter-amethyst-drake',
+            'starter-crystal-moth'
+          ];
           await new Promise((resolve, reject) => {
             const t = db.transaction(['cards', 'settings'], 'readwrite');
             const cardStore = t.objectStore('cards');
             const setStore = t.objectStore('settings');
+            for (const oldId of oldPlaceholderIds) {
+              cardStore.delete(oldId);
+            }
             for (const c of starters) {
               cardStore.put({ ...c });
             }
             setStore.put({ key: 'seeded', value: '1' });
-            setStore.put({ key: 'owner_pin', value: DEFAULT_PIN });
+            setStore.put({ key: 'seeded_pokemon_v2', value: '1' });
+            setStore.put({ key: 'owner_pin', value: pinToKeep });
             t.oncomplete = () => resolve();
             t.onerror = () => reject(t.error);
           });
@@ -134,11 +146,14 @@
 
     async createCard(pin, payload) {
       if (!(await this.verifyPin(pin))) throw new Error('Invalid Owner PIN.');
+      if (!payload.grade) throw new Error('Card grade is required.');
+      if (!payload.finish) throw new Error('Card foil / finish is required.');
       const card = {
         id: 'card-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
         name: payload.name.trim(),
         price: Number(payload.price),
-        rarity: payload.rarity || 'Holo Rare',
+        grade: payload.grade.trim(),
+        finish: payload.finish.trim(),
         description: (payload.description || '').trim(),
         imageData: payload.imageData,
         sold: false,
@@ -516,13 +531,30 @@
       .join('');
   }
 
+  function getCardGrade(card) {
+    return card.grade || card.rarity || 'Near Mint';
+  }
+
+  function getCardFinish(card) {
+    return card.finish || 'Holo Foil';
+  }
+
+  function isFoilFinish(finish) {
+    return Boolean(finish && !/normal|non-foil|non-holo/i.test(finish));
+  }
+
+  function formatFinishText(finish) {
+    if (!finish) return '🃏 Finish';
+    return (isFoilFinish(finish) ? '✨ ' : '🃏 ') + finish;
+  }
+
   function getFilteredSortedCards() {
     const q = state.searchQuery.trim().toLowerCase();
     let list = state.cards.filter((card) => {
       if (state.filter === 'available' && card.sold) return false;
       if (state.filter === 'sold' && !card.sold) return false;
       if (q) {
-        const hay = `${card.name} ${card.rarity} ${card.description}`.toLowerCase();
+        const hay = `${card.name} ${getCardGrade(card)} ${getCardFinish(card)} ${card.description}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -570,12 +602,15 @@
     grid.innerHTML = filtered
       .map((card) => {
         const inCart = state.cartIds.includes(card.id);
+        const grade = getCardGrade(card);
+        const finish = getCardFinish(card);
+        const foilClass = isFoilFinish(finish) ? 'is-foil' : '';
         const revealImmediately = state.hasScrolledPastHero || window.scrollY > 55 || Boolean(state.searchQuery.trim());
         return `
         <article class="trading-card ${card.sold ? 'is-sold' : ''}" data-card-id="${escapeHtml(card.id)}">
           <div class="card-image-frame" data-action="zoom" data-id="${escapeHtml(card.id)}">
             <img src="${card.imageData}" alt="${escapeHtml(card.name)}" loading="lazy" />
-            <span class="rarity-badge">${escapeHtml(card.rarity || 'Card')}</span>
+            <span class="rarity-badge">${escapeHtml(grade)}</span>
             ${
               card.sold
                 ? `<div class="sold-ribbon"><span class="sold-stamp">SOLD</span></div>`
@@ -583,8 +618,11 @@
             }
           </div>
           <div class="card-body">
+            <div class="card-meta-tags">
+              <span class="finish-pill ${foilClass}">${escapeHtml(formatFinishText(finish))}</span>
+            </div>
             <h3 class="card-title">${escapeHtml(card.name)}</h3>
-            <p class="card-desc">${escapeHtml(card.description || 'Authentic owner-listed collectible card.')}</p>
+            <p class="card-desc">${escapeHtml(card.description || 'Authentic owner-listed Pokémon card.')}</p>
 
             <div class="card-price-row ${revealImmediately ? 'revealed' : ''}">
               <div class="price-tag">
@@ -745,17 +783,26 @@
 
   function resetListCardForm() {
     document.getElementById('list-card-form').reset();
+    document.getElementById('card-grade-input').value = '';
+    document.getElementById('card-finish-input').value = '';
+    document.getElementById('card-grade-input').classList.remove('input-invalid');
+    document.getElementById('card-finish-input').classList.remove('input-invalid');
     state.uploadedImageData = '';
     document.getElementById('upload-placeholder').classList.remove('hidden');
     document.getElementById('upload-selected').classList.add('hidden');
     document.getElementById('image-upload-error').classList.add('hidden');
+    document.getElementById('grade-error').classList.add('hidden');
+    document.getElementById('finish-error').classList.add('hidden');
     document.getElementById('list-form-error').classList.add('hidden');
     document.getElementById('preview-img').src = '';
     document.getElementById('preview-img').classList.add('hidden');
     document.getElementById('preview-empty-art').classList.remove('hidden');
     document.getElementById('preview-name').textContent = 'Your Card Name';
     document.getElementById('preview-desc').textContent = 'Card details will appear here.';
-    document.getElementById('preview-rarity').textContent = 'Holo Rare';
+    document.getElementById('preview-grade').textContent = 'Grade?';
+    const prevFinish = document.getElementById('preview-finish');
+    prevFinish.textContent = 'Foil / Normal?';
+    prevFinish.classList.remove('is-foil');
     document.getElementById('preview-price').textContent = '$0.00';
   }
 
@@ -769,12 +816,17 @@
   function openZoomModal(cardId) {
     const card = state.cards.find((c) => c.id === cardId);
     if (!card) return;
+    const grade = getCardGrade(card);
+    const finish = getCardFinish(card);
     document.getElementById('zoom-card-img').src = card.imageData;
     document.getElementById('zoom-card-img').alt = card.name;
-    document.getElementById('zoom-card-rarity').textContent = card.rarity || 'Card';
+    document.getElementById('zoom-card-grade').textContent = grade;
+    const zoomFinishEl = document.getElementById('zoom-card-finish');
+    zoomFinishEl.textContent = formatFinishText(finish);
+    zoomFinishEl.classList.toggle('is-foil', isFoilFinish(finish));
     document.getElementById('zoom-card-title').textContent = card.name;
     document.getElementById('zoom-card-desc').textContent =
-      card.description || 'Authentic owner-listed collectible card.';
+      card.description || 'Authentic owner-listed Pokémon card.';
     document.getElementById('zoom-card-price').textContent = formatPrice(card.price);
 
     const actionArea = document.getElementById('zoom-action-area');
@@ -1036,8 +1088,23 @@
     document.getElementById('card-price-input').addEventListener('input', (e) => {
       document.getElementById('preview-price').textContent = formatPrice(e.target.value);
     });
-    document.getElementById('card-rarity-input').addEventListener('change', (e) => {
-      document.getElementById('preview-rarity').textContent = e.target.value;
+    document.getElementById('card-grade-input').addEventListener('change', (e) => {
+      const val = e.target.value;
+      document.getElementById('preview-grade').textContent = val || 'Grade?';
+      if (val) {
+        e.target.classList.remove('input-invalid');
+        document.getElementById('grade-error').classList.add('hidden');
+      }
+    });
+    document.getElementById('card-finish-input').addEventListener('change', (e) => {
+      const val = e.target.value;
+      const prevFinish = document.getElementById('preview-finish');
+      prevFinish.textContent = val ? formatFinishText(val) : 'Foil / Normal?';
+      prevFinish.classList.toggle('is-foil', isFoilFinish(val));
+      if (val) {
+        e.target.classList.remove('input-invalid');
+        document.getElementById('finish-error').classList.add('hidden');
+      }
     });
     document.getElementById('card-desc-input').addEventListener('input', (e) => {
       document.getElementById('preview-desc').textContent =
@@ -1048,9 +1115,20 @@
     document.getElementById('list-card-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const imgErr = document.getElementById('image-upload-error');
+      const gradeErr = document.getElementById('grade-error');
+      const finishErr = document.getElementById('finish-error');
       const formErr = document.getElementById('list-form-error');
+      const gradeSelect = document.getElementById('card-grade-input');
+      const finishSelect = document.getElementById('card-finish-input');
+
       imgErr.classList.add('hidden');
+      gradeErr.classList.add('hidden');
+      finishErr.classList.add('hidden');
       formErr.classList.add('hidden');
+      gradeSelect.classList.remove('input-invalid');
+      finishSelect.classList.remove('input-invalid');
+
+      let hasError = false;
 
       if (!state.uploadedImageData) {
         imgErr.textContent = 'You have to upload an image of the card to list it!';
@@ -1058,24 +1136,38 @@
         dropzone.classList.remove('shake-error');
         void dropzone.offsetWidth;
         dropzone.classList.add('shake-error');
-        return;
+        hasError = true;
       }
 
       const name = document.getElementById('card-name-input').value.trim();
       const priceVal = parseFloat(document.getElementById('card-price-input').value);
-      const rarity = document.getElementById('card-rarity-input').value;
+      const grade = gradeSelect.value.trim();
+      const finish = finishSelect.value.trim();
       const description = document.getElementById('card-desc-input').value.trim();
+
+      if (!grade) {
+        gradeErr.classList.remove('hidden');
+        gradeSelect.classList.add('input-invalid');
+        hasError = true;
+      }
+
+      if (!finish) {
+        finishErr.classList.remove('hidden');
+        finishSelect.classList.add('input-invalid');
+        hasError = true;
+      }
 
       if (!name) {
         formErr.textContent = 'Please enter the card name.';
         formErr.classList.remove('hidden');
-        return;
-      }
-      if (isNaN(priceVal) || priceVal <= 0) {
+        hasError = true;
+      } else if (isNaN(priceVal) || priceVal <= 0) {
         formErr.textContent = 'Please enter a valid sale price greater than $0.00.';
         formErr.classList.remove('hidden');
-        return;
+        hasError = true;
       }
+
+      if (hasError) return;
 
       const submitBtn = document.getElementById('submit-card-btn');
       submitBtn.disabled = true;
@@ -1086,7 +1178,8 @@
         const created = await backend.createCard(state.ownerPin, {
           name,
           price: Number(priceVal.toFixed(2)),
-          rarity,
+          grade,
+          finish,
           description,
           imageData: state.uploadedImageData
         });
@@ -1097,7 +1190,7 @@
         });
         closeModal('list-modal');
         renderCards();
-        showToast(`🪲 Listed "${created.name}" for ${formatPrice(created.price)}!`);
+        showToast(`🪲 Listed "${created.name}" (${created.grade} • ${created.finish}) for ${formatPrice(created.price)}!`);
 
         document.getElementById('cards-section').scrollIntoView({ behavior: 'smooth' });
       } catch (err) {
