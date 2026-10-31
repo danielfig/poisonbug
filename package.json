@@ -1,0 +1,15 @@
+{
+  "name": "poisonbug",
+  "version": "1.0.0",
+  "description": "PoisonBug — Collectible Trading Card Shop",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "deploy:cloud": "npx wrangler deploy"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

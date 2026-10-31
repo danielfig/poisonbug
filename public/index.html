@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PoisonBug — Collectible Card Shop</title>
+  <meta name="description" content="PoisonBug Card Shop — Browse, search, and buy collectible cards listed by the owner." />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- VERY VERY TOP OF THE SCREEN: THE LITTLE PURPLE BUG -->
+  <div class="top-crown" id="top-crown">
+    <button class="purple-bug-mascot" id="purple-bug-btn" type="button" aria-label="Little Purple Poison Bug">
+      <svg class="bug-svg" viewBox="0 0 120 120" width="38" height="38" aria-hidden="true">
+        <defs>
+          <radialGradient id="topShellGrad" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#e879f9"/>
+            <stop offset="55%" stop-color="#9333ea"/>
+            <stop offset="100%" stop-color="#4c1d95"/>
+          </radialGradient>
+          <linearGradient id="topHeadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#7e22ce"/>
+            <stop offset="100%" stop-color="#2e1065"/>
+          </linearGradient>
+        </defs>
+        <g class="bug-legs" stroke="#c084fc" stroke-width="5" stroke-linecap="round" fill="none">
+          <path d="M35 55 L13 44"/>
+          <path d="M32 72 L10 72"/>
+          <path d="M36 88 L15 101"/>
+          <path d="M85 55 L107 44"/>
+          <path d="M88 72 L110 72"/>
+          <path d="M84 88 L105 101"/>
+        </g>
+        <g class="bug-antennae" stroke="#d8b4fe" stroke-width="4" stroke-linecap="round" fill="none">
+          <path d="M48 28 Q37 9 25 12"/>
+          <path d="M72 28 Q83 9 95 12"/>
+          <circle cx="24" cy="12" r="5" fill="#4ade80" stroke="none"/>
+          <circle cx="96" cy="12" r="5" fill="#4ade80" stroke="none"/>
+        </g>
+        <ellipse cx="60" cy="36" rx="20" ry="15" fill="url(#topHeadGrad)" stroke="#d8b4fe" stroke-width="2.2"/>
+        <circle cx="51" cy="32" r="4.5" fill="#4ade80"/>
+        <circle cx="69" cy="32" r="4.5" fill="#4ade80"/>
+        <circle cx="52" cy="31" r="1.8" fill="#ffffff"/>
+        <circle cx="70" cy="31" r="1.8" fill="#ffffff"/>
+        <ellipse cx="60" cy="72" rx="30" ry="34" fill="url(#topShellGrad)" stroke="#f0abfc" stroke-width="2.8"/>
+        <line x1="60" y1="39" x2="60" y2="105" stroke="#2e1065" stroke-width="2.5"/>
+        <circle cx="46" cy="58" r="5.5" fill="#f0abfc" opacity="0.9"/>
+        <circle cx="74" cy="58" r="5.5" fill="#f0abfc" opacity="0.9"/>
+        <circle cx="44" cy="78" r="7" fill="#4ade80" opacity="0.85"/>
+        <circle cx="76" cy="78" r="7" fill="#4ade80" opacity="0.85"/>
+        <circle cx="50" cy="94" r="4" fill="#d8b4fe" opacity="0.9"/>
+        <circle cx="70" cy="94" r="4" fill="#d8b4fe" opacity="0.9"/>
+        <ellipse cx="47" cy="52" rx="6" ry="11" transform="rotate(-20 47 52)" fill="#ffffff" opacity="0.28"/>
+      </svg>
+      <span class="bug-speech" id="bug-speech">Bzz! Welcome to PoisonBug!</span>
+    </button>
+  </div>
+
+  <!-- STICKY TOP HEADER WITH SEARCH BAR -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a href="#top-crown" class="brand-logo" aria-label="PoisonBug Home">
+        <span class="brand-poison">Poison</span><span class="brand-bug">Bug</span>
+        <span class="brand-tag">CARDS</span>
+      </a>
+
+      <!-- SEARCH BAR AT THE TOP OF THE SCREEN -->
+      <div class="search-wrapper" role="search">
+        <svg class="search-icon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="Search for the card you want..."
+          autocomplete="off"
+          aria-label="Search for the card you want"
+        />
+        <button type="button" id="clear-search-btn" class="clear-search-btn hidden" aria-label="Clear search">✕</button>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" id="list-card-btn" class="btn btn-owner">
+          <span class="owner-lock-icon" id="owner-lock-icon">🔒</span>
+          <span>List a Card</span>
+        </button>
+
+        <button type="button" id="cart-toggle-btn" class="btn btn-cart" aria-label="Open shopping cart">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-label">Cart</span>
+          <span class="cart-badge" id="cart-count-badge">0</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- OWNER CONTROLS RIBBON (VISIBLE WHEN OWNER PIN IS UNLOCKED) -->
+    <div class="owner-bar hidden" id="owner-bar">
+      <div class="owner-bar-inner">
+        <div class="owner-status">
+          <span class="owner-dot"></span>
+          <strong>Owner Mode Unlocked</strong>
+          <span class="owner-sub">You can list new cards, edit prices, or view orders.</span>
+        </div>
+        <div class="owner-bar-buttons">
+          <button type="button" class="btn-chip" id="owner-orders-btn">📦 Orders &amp; Earnings</button>
+          <button type="button" class="btn-chip" id="owner-change-pin-btn">🔑 Change PIN</button>
+          <button type="button" class="btn-chip btn-chip-danger" id="owner-lock-btn">Lock Owner Mode</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO SECTION: SCROLL DOWN A LITTLE BIT TO FIND ALL CARDS & PRICES -->
+    <section class="hero-section" id="hero-section">
+      <div class="hero-glow hero-glow-left" aria-hidden="true"></div>
+      <div class="hero-glow hero-glow-right" aria-hidden="true"></div>
+
+      <div class="hero-content">
+        <div class="hero-text">
+          <div class="hero-pill">
+            <span class="pill-dot"></span>
+            <span id="hero-available-count">Loading cards...</span>
+          </div>
+          <h1 class="hero-title">
+            Find Your Next Favorite <span class="gradient-text">Trading Card</span>
+          </h1>
+          <p class="hero-subtitle">
+            Every card is photographed and listed directly by the PoisonBug shop owner.
+            Use the search bar above or <strong>scroll down a little bit</strong> to reveal all cards for sale and their prices!
+          </p>
+          <div class="hero-cta-row">
+            <a href="#cards-section" class="btn btn-primary btn-scroll-cta" id="scroll-to-cards-btn">
+              <span>Scroll Down for Cards &amp; Prices</span>
+              <span class="bounce-arrow">↓</span>
+            </a>
+            <button type="button" class="btn btn-secondary" id="hero-list-btn">
+              + Owner: List a Card
+            </button>
+          </div>
+        </div>
+
+        <!-- FLOATING CARD SHOWCASE TEASER (PRICES REVEALED BELOW WHEN YOU SCROLL!) -->
+        <div class="hero-showcase" id="hero-showcase" aria-hidden="true">
+          <div class="showcase-stack" id="showcase-stack">
+            <!-- Populated dynamically from the top listed cards -->
+          </div>
+          <div class="showcase-caption">
+            <span>✨ Scroll down to see sale prices &amp; buy!</span>
+          </div>
+        </div>
+      </div>
+
+      <a href="#cards-section" class="scroll-indicator" aria-label="Scroll down to cards for sale">
+        <span class="scroll-indicator-text">Scroll down for prices &amp; cards</span>
+        <span class="scroll-chevron">⌄</span>
+      </a>
+    </section>
+
+    <!-- ALL CARDS FOR SALE SECTION (REVEALED AS YOU SCROLL DOWN) -->
+    <section class="cards-section" id="cards-section">
+      <div class="section-header">
+        <div>
+          <span class="section-eyebrow">POISONBUG MARKETPLACE</span>
+          <h2 class="section-title">Cards For Sale</h2>
+        </div>
+
+        <div class="controls-bar">
+          <div class="filter-pills" role="tablist" aria-label="Filter cards">
+            <button type="button" class="filter-pill active" data-filter="available">For Sale</button>
+            <button type="button" class="filter-pill" data-filter="all">All Cards</button>
+            <button type="button" class="filter-pill" data-filter="sold">Sold</button>
+          </div>
+
+          <select id="sort-select" class="sort-select" aria-label="Sort cards">
+            <option value="newest">Newest Listed</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="name-asc">Name: A to Z</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="search-status-banner" class="search-status-banner hidden">
+        <span id="search-status-text"></span>
+        <button type="button" id="reset-search-link" class="link-btn">Show all cards</button>
+      </div>
+
+      <!-- CARDS GRID -->
+      <div class="cards-grid" id="cards-grid">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state hidden" id="empty-state">
+        <div class="empty-bug">🪲</div>
+        <h3 id="empty-title">No matching cards found</h3>
+        <p id="empty-subtitle">Try searching for another card name or clearing your filters.</p>
+        <div class="empty-actions">
+          <button type="button" class="btn btn-secondary" id="empty-reset-btn">Show All Cards</button>
+          <button type="button" class="btn btn-primary" id="empty-list-btn">+ List a New Card</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span>🪲</span>
+        <strong>PoisonBug</strong>
+        <span>• Official Owner Card Shop</span>
+      </div>
+      <p class="footer-hint">All cards are listed with real photos and sold at their listed sale price.</p>
+    </div>
+  </footer>
+
+  <!-- SHOPPING CART & CHECKOUT DRAWER -->
+  <div class="drawer-backdrop hidden" id="cart-backdrop"></div>
+  <aside class="cart-drawer hidden" id="cart-drawer" aria-label="Shopping Cart">
+    <div class="drawer-header">
+      <h3>🛒 Your Card Cart</h3>
+      <button type="button" class="icon-close-btn" id="close-cart-btn" aria-label="Close cart">✕</button>
+    </div>
+
+    <div class="drawer-body" id="cart-items-container">
+      <!-- Cart items rendered dynamically -->
+    </div>
+
+    <div class="drawer-footer" id="cart-footer">
+      <div class="cart-total-row">
+        <span>Total Sale Price</span>
+        <strong class="cart-total-amount" id="cart-total-amount">$0.00</strong>
+      </div>
+
+      <form id="checkout-form" class="checkout-form">
+        <div class="form-group">
+          <label for="buyer-name">Your Name <span class="req">*</span></label>
+          <input type="text" id="buyer-name" required maxlength="80" placeholder="e.g. Alex" />
+        </div>
+        <div class="form-group">
+          <label for="buyer-note">Email or Pickup/Delivery Note</label>
+          <input type="text" id="buyer-note" maxlength="160" placeholder="e.g. alex@email.com or Save for Friday!" />
+        </div>
+        <button type="submit" class="btn btn-buy-full" id="checkout-submit-btn">
+          Complete Purchase
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- MODAL: OWNER PIN UNLOCK -->
+  <div class="modal-overlay hidden" id="pin-modal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="pin-modal-title">
+      <div class="modal-header">
+        <h3 id="pin-modal-title">🔒 Owner PIN Required</h3>
+        <button type="button" class="icon-close-btn" data-close-modal="pin-modal" aria-label="Close">✕</button>
+      </div>
+      <p class="modal-desc">Enter the shop owner PIN to list cards or manage the store.</p>
+      <form id="pin-form">
+        <div class="form-group">
+          <label for="owner-pin-input">Owner PIN</label>
+          <input
+            type="password"
+            id="owner-pin-input"
+            class="pin-input"
+            inputmode="numeric"
+            placeholder="••••"
+            required
+            autocomplete="current-password"
+          />
+          <p class="form-error hidden" id="pin-error">Incorrect PIN. Try again!</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="pin-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Unlock Owner Mode</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: LIST A NEW CARD (IMAGE UPLOAD REQUIRED!) -->
+  <div class="modal-overlay hidden" id="list-modal">
+    <div class="modal-card modal-lg" role="dialog" aria-modal="true" aria-labelledby="list-modal-title">
+      <div class="modal-header">
+        <h3 id="list-modal-title">🪲 List a Card for Sale</h3>
+        <button type="button" class="icon-close-btn" data-close-modal="list-modal" aria-label="Close">✕</button>
+      </div>
+
+      <form id="list-card-form" class="list-card-layout" novalidate>
+        <div class="list-form-fields">
+          <!-- REQUIRED IMAGE UPLOAD -->
+          <div class="form-group">
+            <label>Card Photo <span class="req">* (Required)</span></label>
+            <div class="upload-dropzone" id="upload-dropzone" tabindex="0" role="button" aria-label="Upload card image">
+              <input type="file" id="card-image-input" accept="image/*" class="visually-hidden-file" />
+              <div class="upload-placeholder" id="upload-placeholder">
+                <div class="upload-icon">📸</div>
+                <strong>Click or drop a card photo here</strong>
+                <span>Take a picture or choose an image (JPG, PNG, WebP)</span>
+              </div>
+              <div class="upload-selected hidden" id="upload-selected">
+                <span class="upload-check">✅ Photo ready!</span>
+                <span class="upload-change-hint">Click to swap photo</span>
+              </div>
+            </div>
+            <p class="form-error hidden" id="image-upload-error">You have to upload an image of the card to list it!</p>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="card-name-input">Card Name <span class="req">*</span></label>
+              <input type="text" id="card-name-input" required maxlength="80" placeholder="e.g. Charizard EX Holo" />
+            </div>
+
+            <div class="form-group">
+              <label for="card-price-input">Sale Price ($) <span class="req">*</span></label>
+              <div class="price-input-wrap">
+                <span class="currency-prefix">$</span>
+                <input
+                  type="number"
+                  id="card-price-input"
+                  required
+                  min="0.01"
+                  max="99999"
+                  step="0.01"
+                  placeholder="10.00"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="card-rarity-input">Rarity / Condition</label>
+            <select id="card-rarity-input">
+              <option value="Mint">Mint</option>
+              <option value="Near Mint">Near Mint</option>
+              <option value="Holo Rare" selected>Holo Rare</option>
+              <option value="Ultra Rare">Ultra Rare</option>
+              <option value="Secret Rare">Secret Rare</option>
+              <option value="Good Condition">Good Condition</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="card-desc-input">Card Details (Optional)</label>
+            <textarea id="card-desc-input" rows="2" maxlength="240" placeholder="Describe foil shine, edition, or condition..."></textarea>
+          </div>
+
+          <p class="form-error hidden" id="list-form-error"></p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close-modal="list-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submit-card-btn">List Card for Sale</button>
+          </div>
+        </div>
+
+        <!-- LIVE CARD PREVIEW -->
+        <div class="live-preview-pane">
+          <span class="preview-label">LIVE SHOP PREVIEW</span>
+          <div class="trading-card preview-card">
+            <div class="card-image-frame">
+              <img id="preview-img" src="" alt="Card preview" class="hidden" />
+              <div id="preview-empty-art" class="preview-empty-art">
+                <span>🖼️</span>
+                <p>Upload an image to preview your card</p>
+              </div>
+              <span class="rarity-badge" id="preview-rarity">Holo Rare</span>
+            </div>
+            <div class="card-body">
+              <h4 class="card-title" id="preview-name">Your Card Name</h4>
+              <p class="card-desc" id="preview-desc">Card details will appear here.</p>
+              <div class="card-price-row revealed">
+                <div class="price-tag">
+                  <span class="price-caption">SALE PRICE</span>
+                  <span class="price-value" id="preview-price">$0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT CARD PRICE -->
+  <div class="modal-overlay hidden" id="edit-price-modal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="edit-price-title">
+      <div class="modal-header">
+        <h3 id="edit-price-title">🏷️ Update Sale Price</h3>
+        <button type="button" class="icon-close-btn" data-close-modal="edit-price-modal" aria-label="Close">✕</button>
+      </div>
+      <form id="edit-price-form">
+        <input type="hidden" id="edit-card-id" />
+        <p class="modal-desc" id="edit-card-name-label"></p>
+        <div class="form-group">
+          <label for="edit-price-input">New Sale Price ($)</label>
+          <div class="price-input-wrap">
+            <span class="currency-prefix">$</span>
+            <input type="number" id="edit-price-input" required min="0.01" max="99999" step="0.01" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="edit-price-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Price</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE OWNER PIN -->
+  <div class="modal-overlay hidden" id="change-pin-modal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="change-pin-title">
+      <div class="modal-header">
+        <h3 id="change-pin-title">🔑 Change Owner PIN</h3>
+        <button type="button" class="icon-close-btn" data-close-modal="change-pin-modal" aria-label="Close">✕</button>
+      </div>
+      <form id="change-pin-form">
+        <div class="form-group">
+          <label for="new-pin-input">New Secret PIN (at least 4 characters)</label>
+          <input type="password" id="new-pin-input" class="pin-input" minlength="4" maxlength="24" required placeholder="New PIN" />
+          <p class="form-error hidden" id="change-pin-error"></p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="change-pin-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update PIN</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: OWNER ORDERS & EARNINGS -->
+  <div class="modal-overlay hidden" id="orders-modal">
+    <div class="modal-card modal-md" role="dialog" aria-modal="true" aria-labelledby="orders-modal-title">
+      <div class="modal-header">
+        <h3 id="orders-modal-title">📦 Sold Cards &amp; Earnings</h3>
+        <button type="button" class="icon-close-btn" data-close-modal="orders-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="earnings-summary">
+        <div>
+          <span class="earnings-label">TOTAL EARNINGS</span>
+          <strong class="earnings-total" id="orders-total-earned">$0.00</strong>
+        </div>
+        <div>
+          <span class="earnings-label">COMPLETED ORDERS</span>
+          <strong class="earnings-count" id="orders-total-count">0</strong>
+        </div>
+      </div>
+      <div class="orders-list" id="orders-list">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CARD ZOOM INSPECTOR -->
+  <div class="modal-overlay hidden" id="zoom-modal">
+    <div class="modal-card modal-zoom" role="dialog" aria-modal="true" aria-labelledby="zoom-card-title">
+      <button type="button" class="icon-close-btn zoom-close" data-close-modal="zoom-modal" aria-label="Close">✕</button>
+      <div class="zoom-layout">
+        <div class="zoom-image-wrap">
+          <img id="zoom-card-img" src="" alt="" />
+        </div>
+        <div class="zoom-details">
+          <span class="rarity-badge" id="zoom-card-rarity"></span>
+          <h3 id="zoom-card-title"></h3>
+          <p id="zoom-card-desc"></p>
+          <div class="zoom-price-box">
+            <span class="price-caption">SALE PRICE</span>
+            <strong class="zoom-price-val" id="zoom-card-price"></strong>
+          </div>
+          <div id="zoom-action-area"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PURCHASE CELEBRATION -->
+  <div class="modal-overlay hidden" id="success-modal">
+    <div class="modal-card modal-sm celebration-card" role="dialog" aria-modal="true" aria-labelledby="success-title">
+      <div class="celebration-bug">🪲✨</div>
+      <h3 id="success-title">Order Confirmed!</h3>
+      <p id="success-message">Thank you for buying from PoisonBug!</p>
+      <div class="receipt-box" id="success-receipt"></div>
+      <button type="button" class="btn btn-primary btn-full" data-close-modal="success-modal">Awesome!</button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <script src="./seed-cards.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
