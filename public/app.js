@@ -16,6 +16,7 @@
   class IndexedDbBackend {
     constructor() {
       this.dbPromise = null;
+      this.seedPromise = null;
     }
 
     open() {
@@ -40,68 +41,94 @@
       return this.dbPromise;
     }
 
-    async tx(storeName, mode, fn) {
+    async idbGet(storeName, key) {
       const db = await this.open();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
-        let result;
-        Promise.resolve(fn(store, transaction))
-          .then((res) => {
-            result = res;
-          })
-          .catch(reject);
-        transaction.oncomplete = () => resolve(result);
-        transaction.onerror = () => reject(transaction.error);
-      });
-    }
-
-    reqToPromise(req) {
-      return new Promise((resolve, reject) => {
+        const t = db.transaction(storeName, 'readonly');
+        const req = t.objectStore(storeName).get(key);
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
       });
     }
 
-    async ensureSeeded() {
-      const seededRec = await this.tx('settings', 'readonly', (s) => this.reqToPromise(s.get('seeded')));
-      if (!seededRec) {
-        const starters = window.POISONBUG_STARTER_CARDS || [];
-        await this.tx(['cards', 'settings'], 'readwrite', ( _, t) => {
-          const cardStore = t.objectStore('cards');
-          const setStore = t.objectStore('settings');
-          for (const c of starters) {
-            cardStore.put({ ...c });
-          }
-          setStore.put({ key: 'seeded', value: '1' });
-          setStore.put({ key: 'owner_pin', value: DEFAULT_PIN });
-        });
-      }
+    async idbGetAll(storeName) {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const t = db.transaction(storeName, 'readonly');
+        const req = t.objectStore(storeName).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async idbPut(storeName, value) {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const t = db.transaction(storeName, 'readwrite');
+        t.objectStore(storeName).put(value);
+        t.oncomplete = () => resolve(value);
+        t.onerror = () => reject(t.error);
+      });
+    }
+
+    async idbDelete(storeName, key) {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const t = db.transaction(storeName, 'readwrite');
+        t.objectStore(storeName).delete(key);
+        t.oncomplete = () => resolve(true);
+        t.onerror = () => reject(t.error);
+      });
+    }
+
+    ensureSeeded() {
+      if (this.seedPromise) return this.seedPromise;
+      this.seedPromise = (async () => {
+        const seededRec = await this.idbGet('settings', 'seeded');
+        if (!seededRec) {
+          const db = await this.open();
+          const starters = window.POISONBUG_STARTER_CARDS || [];
+          await new Promise((resolve, reject) => {
+            const t = db.transaction(['cards', 'settings'], 'readwrite');
+            const cardStore = t.objectStore('cards');
+            const setStore = t.objectStore('settings');
+            for (const c of starters) {
+              cardStore.put({ ...c });
+            }
+            setStore.put({ key: 'seeded', value: '1' });
+            setStore.put({ key: 'owner_pin', value: DEFAULT_PIN });
+            t.oncomplete = () => resolve();
+            t.onerror = () => reject(t.error);
+          });
+        }
+      })().catch((err) => {
+        this.seedPromise = null;
+        throw err;
+      });
+      return this.seedPromise;
     }
 
     async getPin() {
       await this.ensureSeeded();
-      const rec = await this.tx('settings', 'readonly', (s) => this.reqToPromise(s.get('owner_pin')));
-      return rec ? rec.value : DEFAULT_PIN;
+      const rec = await this.idbGet('settings', 'owner_pin');
+      return rec && rec.value ? rec.value : DEFAULT_PIN;
     }
 
     async verifyPin(pin) {
       const actual = await this.getPin();
-      return String(pin) === String(actual);
+      return String(pin).trim() === String(actual).trim();
     }
 
     async changePin(currentPin, newPin) {
       const ok = await this.verifyPin(currentPin);
       if (!ok) throw new Error('Current PIN is incorrect.');
-      await this.tx('settings', 'readwrite', (s) => {
-        s.put({ key: 'owner_pin', value: String(newPin) });
-      });
+      await this.idbPut('settings', { key: 'owner_pin', value: String(newPin).trim() });
       return true;
     }
 
     async getCards() {
       await this.ensureSeeded();
-      const all = await this.tx('cards', 'readonly', (s) => this.reqToPromise(s.getAll()));
+      const all = await this.idbGetAll('cards');
       return all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
@@ -119,35 +146,34 @@
         buyerName: null,
         createdAt: new Date().toISOString()
       };
-      await this.tx('cards', 'readwrite', (s) => s.put(card));
+      await this.idbPut('cards', card);
       return card;
     }
 
     async updateCard(pin, id, patch) {
       if (!(await this.verifyPin(pin))) throw new Error('Invalid Owner PIN.');
-      return this.tx('cards', 'readwrite', async (s) => {
-        const existing = await this.reqToPromise(s.get(id));
-        if (!existing) throw new Error('Card not found.');
-        if (patch.price !== undefined) existing.price = Number(patch.price);
-        if (patch.sold !== undefined) {
-          existing.sold = Boolean(patch.sold);
-          if (!existing.sold) {
-            existing.soldAt = null;
-            existing.buyerName = null;
-          }
+      const existing = await this.idbGet('cards', id);
+      if (!existing) throw new Error('Card not found.');
+      if (patch.price !== undefined) existing.price = Number(patch.price);
+      if (patch.sold !== undefined) {
+        existing.sold = Boolean(patch.sold);
+        if (!existing.sold) {
+          existing.soldAt = null;
+          existing.buyerName = null;
         }
-        s.put(existing);
-        return existing;
-      });
+      }
+      await this.idbPut('cards', existing);
+      return existing;
     }
 
     async deleteCard(pin, id) {
       if (!(await this.verifyPin(pin))) throw new Error('Invalid Owner PIN.');
-      await this.tx('cards', 'readwrite', (s) => s.delete(id));
+      await this.idbDelete('cards', id);
       return true;
     }
 
     async checkout({ cardIds, buyerName, buyerNote }) {
+      await this.ensureSeeded();
       const db = await this.open();
       return new Promise((resolve, reject) => {
         const t = db.transaction(['cards', 'orders'], 'readwrite');
@@ -155,25 +181,34 @@
         const orderStore = t.objectStore('orders');
         const items = [];
         let total = 0;
+        let settled = false;
+
+        const fail = (err) => {
+          if (settled) return;
+          settled = true;
+          try { t.abort(); } catch (_) {}
+          reject(err);
+        };
 
         let pending = cardIds.length;
         if (pending === 0) {
-          reject(new Error('Your cart is empty.'));
+          fail(new Error('Your cart is empty.'));
           return;
         }
+
+        let createdOrder = null;
 
         cardIds.forEach((id) => {
           const g = cardStore.get(id);
           g.onsuccess = () => {
+            if (settled) return;
             const card = g.result;
             if (!card) {
-              t.abort();
-              reject(new Error('One of the cards is no longer listed.'));
+              fail(new Error('One of the cards is no longer listed.'));
               return;
             }
             if (card.sold) {
-              t.abort();
-              reject(new Error(`"${card.name}" was already sold!`));
+              fail(new Error(`"${card.name}" was already sold!`));
               return;
             }
             card.sold = true;
@@ -185,7 +220,7 @@
 
             pending -= 1;
             if (pending === 0) {
-              const order = {
+              createdOrder = {
                 id: 'ord-' + Date.now(),
                 buyerName: buyerName.trim(),
                 buyerNote: (buyerNote || '').trim(),
@@ -193,20 +228,25 @@
                 items,
                 createdAt: new Date().toISOString()
               };
-              orderStore.put(order);
-              t.oncomplete = () => resolve(order);
+              orderStore.put(createdOrder);
             }
           };
-          g.onerror = () => reject(g.error);
+          g.onerror = () => fail(g.error || new Error('Failed reading card.'));
         });
 
-        t.onerror = () => reject(t.error || new Error('Checkout failed.'));
+        t.oncomplete = () => {
+          if (!settled) {
+            settled = true;
+            resolve(createdOrder);
+          }
+        };
+        t.onerror = () => fail(t.error || new Error('Checkout failed.'));
       });
     }
 
     async getOrders(pin) {
       if (!(await this.verifyPin(pin))) throw new Error('Invalid Owner PIN.');
-      const all = await this.tx('orders', 'readonly', (s) => this.reqToPromise(s.getAll()));
+      const all = await this.idbGetAll('orders');
       return all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
   }
@@ -290,20 +330,33 @@
     }
   }
 
-  async function detectBackend() {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 1800);
-      const res = await fetch('/api/health', { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.ok) return new ServerApiBackend();
+  let backendInitPromise = null;
+
+  function getBackend() {
+    if (state.backend) return Promise.resolve(state.backend);
+    if (backendInitPromise) return backendInitPromise;
+    backendInitPromise = (async () => {
+      if (!window.location.hostname.endsWith('github.io')) {
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 1500);
+          const res = await fetch('/api/health', { signal: ctrl.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json.ok) {
+              state.backend = new ServerApiBackend();
+              return state.backend;
+            }
+          }
+        } catch (_) {
+          // Static hosting mode — fall back seamlessly to IndexedDB
+        }
       }
-    } catch (_) {
-      // Static hosting mode — fall back seamlessly to IndexedDB
-    }
-    return new IndexedDbBackend();
+      state.backend = new IndexedDbBackend();
+      return state.backend;
+    })();
+    return backendInitPromise;
   }
 
   // =========================================================
@@ -834,9 +887,12 @@
       e.preventDefault();
       const pinVal = document.getElementById('owner-pin-input').value.trim();
       const errEl = document.getElementById('pin-error');
+      errEl.classList.add('hidden');
       try {
-        const ok = await state.backend.verifyPin(pinVal);
+        const backend = await getBackend();
+        const ok = await backend.verifyPin(pinVal);
         if (!ok) {
+          errEl.textContent = 'Incorrect PIN. Try again!';
           errEl.classList.remove('hidden');
           return;
         }
@@ -873,7 +929,8 @@
         return;
       }
       try {
-        await state.backend.changePin(state.ownerPin, newPin);
+        const backend = await getBackend();
+        await backend.changePin(state.ownerPin, newPin);
         state.ownerPin = newPin;
         sessionStorage.setItem('poisonbug_owner_pin', newPin);
         closeModal('change-pin-modal');
@@ -887,7 +944,8 @@
     // Owner Orders & Earnings Modal
     document.getElementById('owner-orders-btn').addEventListener('click', async () => {
       try {
-        const orders = await state.backend.getOrders(state.ownerPin);
+        const backend = await getBackend();
+        const orders = await backend.getOrders(state.ownerPin);
         const totalEarned = orders.reduce((acc, o) => acc + Number(o.total || 0), 0);
         document.getElementById('orders-total-earned').textContent = formatPrice(totalEarned);
         document.getElementById('orders-total-count').textContent = String(orders.length);
@@ -1024,7 +1082,8 @@
       submitBtn.textContent = 'Listing Card...';
 
       try {
-        const created = await state.backend.createCard(state.ownerPin, {
+        const backend = await getBackend();
+        const created = await backend.createCard(state.ownerPin, {
           name,
           price: Number(priceVal.toFixed(2)),
           rarity,
@@ -1086,7 +1145,8 @@
         openModal('edit-price-modal');
       } else if (action === 'relist') {
         try {
-          const updated = await state.backend.updateCard(state.ownerPin, card.id, { sold: false });
+          const backend = await getBackend();
+          const updated = await backend.updateCard(state.ownerPin, card.id, { sold: false });
           const idx = state.cards.findIndex((c) => c.id === card.id);
           if (idx >= 0) state.cards[idx] = updated;
           renderCards();
@@ -1097,7 +1157,8 @@
       } else if (action === 'delete-card') {
         if (!window.confirm(`Delete "${card.name}" from the shop?`)) return;
         try {
-          await state.backend.deleteCard(state.ownerPin, card.id);
+          const backend = await getBackend();
+          await backend.deleteCard(state.ownerPin, card.id);
           state.cards = state.cards.filter((c) => c.id !== card.id);
           sanitizeCart();
           renderCards();
@@ -1115,7 +1176,8 @@
       const newPrice = parseFloat(document.getElementById('edit-price-input').value);
       if (isNaN(newPrice) || newPrice <= 0) return;
       try {
-        const updated = await state.backend.updateCard(state.ownerPin, id, {
+        const backend = await getBackend();
+        const updated = await backend.updateCard(state.ownerPin, id, {
           price: Number(newPrice.toFixed(2))
         });
         const idx = state.cards.findIndex((c) => c.id === id);
@@ -1153,14 +1215,15 @@
       btn.disabled = true;
       btn.textContent = 'Completing Order...';
 
+      const backend = await getBackend();
       try {
-        const order = await state.backend.checkout({
+        const order = await backend.checkout({
           cardIds: [...state.cartIds],
           buyerName,
           buyerNote
         });
 
-        state.cards = await state.backend.getCards();
+        state.cards = await backend.getCards();
         state.cartIds = [];
         saveCart();
         document.getElementById('checkout-form').reset();
@@ -1178,7 +1241,7 @@
         openModal('success-modal');
       } catch (err) {
         showToast('⚠️ ' + err.message);
-        state.cards = await state.backend.getCards();
+        state.cards = await backend.getCards();
         sanitizeCart();
         renderCartDrawer();
         renderCards();
@@ -1211,18 +1274,18 @@
   // =========================================================
   async function init() {
     bindEvents();
-    state.backend = await detectBackend();
+    const backend = await getBackend();
 
     // Verify stored session PIN is still valid
     if (state.ownerPin) {
-      const stillValid = await state.backend.verifyPin(state.ownerPin).catch(() => false);
+      const stillValid = await backend.verifyPin(state.ownerPin).catch(() => false);
       if (!stillValid) {
         state.ownerPin = null;
         sessionStorage.removeItem('poisonbug_owner_pin');
       }
     }
 
-    state.cards = await state.backend.getCards();
+    state.cards = await backend.getCards();
     sanitizeCart();
     updateOwnerUi();
   }
