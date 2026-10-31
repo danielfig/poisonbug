@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <radialGradient id="shellGrad" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#d946ef"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </radialGradient>
+    <linearGradient id="headGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6b21a8"/>
+      <stop offset="100%" stop-color="#2e1065"/>
+    </linearGradient>
+  </defs>
+  <!-- Legs -->
+  <g stroke="#a855f7" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M35 55 L14 45"/>
+    <path d="M32 72 L10 72"/>
+    <path d="M36 88 L16 100"/>
+    <path d="M85 55 L106 45"/>
+    <path d="M88 72 L110 72"/>
+    <path d="M84 88 L104 100"/>
+  </g>
+  <!-- Antennae -->
+  <g stroke="#c084fc" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M48 28 Q38 10 26 12"/>
+    <path d="M72 28 Q82 10 94 12"/>
+  </g>
+  <circle cx="25" cy="12" r="5" fill="#4ade80"/>
+  <circle cx="95" cy="12" r="5" fill="#4ade80"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="36" rx="20" ry="15" fill="url(#headGrad)" stroke="#c084fc" stroke-width="2"/>
+  <!-- Eyes -->
+  <circle cx="51" cy="32" r="4.5" fill="#4ade80"/>
+  <circle cx="69" cy="32" r="4.5" fill="#4ade80"/>
+  <circle cx="52" cy="31" r="1.8" fill="#ffffff"/>
+  <circle cx="70" cy="31" r="1.8" fill="#ffffff"/>
+  <!-- Shell -->
+  <ellipse cx="60" cy="72" rx="30" ry="34" fill="url(#shellGrad)" stroke="#e879f9" stroke-width="2.5"/>
+  <!-- Wing split line -->
+  <line x1="60" y1="39" x2="60" y2="105" stroke="#2e1065" stroke-width="2.5"/>
+  <!-- Poison glowing spots -->
+  <circle cx="46" cy="58" r="5.5" fill="#e879f9" opacity="0.85"/>
+  <circle cx="74" cy="58" r="5.5" fill="#e879f9" opacity="0.85"/>
+  <circle cx="44" cy="78" r="7" fill="#4ade80" opacity="0.8"/>
+  <circle cx="76" cy="78" r="7" fill="#4ade80" opacity="0.8"/>
+  <circle cx="50" cy="94" r="4" fill="#c084fc" opacity="0.85"/>
+  <circle cx="70" cy="94" r="4" fill="#c084fc" opacity="0.85"/>
+  <!-- Shell shine -->
+  <ellipse cx="47" cy="52" rx="6" ry="11" transform="rotate(-20 47 52)" fill="#ffffff" opacity="0.24"/>
+</svg>
