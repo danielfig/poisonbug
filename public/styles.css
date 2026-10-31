@@ -514,10 +514,10 @@ body {
 .showcase-mini-card {
   position: absolute;
   width: 195px;
-  aspect-ratio: 3 / 4;
-  border-radius: 16px;
+  aspect-ratio: 600 / 825;
+  border-radius: 14px;
   overflow: hidden;
-  background: var(--bg-card);
+  background: #0d071c;
   border: 2px solid rgba(232, 121, 249, 0.55);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
   transition: transform 0.35s ease;
@@ -526,7 +526,7 @@ body {
 .showcase-mini-card img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -717,8 +717,9 @@ body {
 
 .card-image-frame {
   position: relative;
-  aspect-ratio: 3 / 4;
-  background: #0d071c;
+  aspect-ratio: 600 / 825;
+  background: radial-gradient(circle at 50% 45%, #1d1038 0%, #0b0516 100%);
+  padding: 10px;
   overflow: hidden;
   cursor: zoom-in;
 }
@@ -726,13 +727,15 @@ body {
 .card-image-frame img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  border-radius: 10px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.55));
   transition: transform 0.35s ease;
 }
 
 .trading-card:hover .card-image-frame img {
-  transform: scale(1.04);
+  transform: scale(1.035);
 }
 
 .rarity-badge {
@@ -741,14 +744,39 @@ body {
   left: 12px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.71rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: rgba(11, 6, 22, 0.82);
+  background: rgba(11, 6, 22, 0.88);
   backdrop-filter: blur(6px);
-  color: #f0abfc;
-  border: 1px solid rgba(232, 121, 249, 0.5);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.55);
+}
+
+.card-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.finish-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: rgba(192, 132, 252, 0.14);
+  color: #e9d5ff;
+  border: 1px solid rgba(192, 132, 252, 0.32);
+}
+
+.finish-pill.is-foil {
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.28), rgba(236, 72, 153, 0.25), rgba(56, 189, 248, 0.25));
+  color: #fdf4ff;
+  border-color: rgba(232, 121, 249, 0.6);
 }
 
 .sold-ribbon {
@@ -1212,6 +1240,17 @@ body {
   gap: 12px;
 }
 
+.form-row-equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.input-invalid {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.22);
+}
+
 .form-error {
   margin: 4px 0 0;
   color: #fda4af;
@@ -1415,21 +1454,29 @@ body {
   border-radius: 16px;
   overflow: hidden;
   border: 2px solid rgba(217, 70, 239, 0.45);
-  background: #0b0616;
-  aspect-ratio: 3 / 4;
+  background: radial-gradient(circle at 50% 45%, #1d1038 0%, #0b0516 100%);
+  padding: 12px;
+  aspect-ratio: 600 / 825;
 }
 
 .zoom-image-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+}
+
+.zoom-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .zoom-details .rarity-badge {
   position: static;
   display: inline-block;
-  margin-bottom: 10px;
 }
 
 .zoom-details h3 {
@@ -1559,7 +1606,8 @@ body {
   }
 
   .list-card-layout,
-  .zoom-layout {
+  .zoom-layout,
+  .form-row-equal {
     grid-template-columns: 1fr;
   }
 

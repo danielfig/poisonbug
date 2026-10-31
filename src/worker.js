@@ -16,7 +16,8 @@ export class PoisonBugStore extends DurableObject {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         price REAL NOT NULL,
-        rarity TEXT NOT NULL DEFAULT 'Holo Rare',
+        grade TEXT NOT NULL DEFAULT 'Near Mint',
+        finish TEXT NOT NULL DEFAULT 'Holo Foil',
         description TEXT NOT NULL DEFAULT '',
         image_data TEXT NOT NULL,
         sold INTEGER NOT NULL DEFAULT 0,
@@ -34,23 +35,33 @@ export class PoisonBugStore extends DurableObject {
       );
     `);
 
-    const seeded = [...this.sql.exec(`SELECT value FROM settings WHERE key = 'seeded'`)];
+    const cols = [...this.sql.exec(`PRAGMA table_info(cards)`)].map((c) => c.name);
+    if (!cols.includes('grade')) {
+      this.sql.exec(`ALTER TABLE cards ADD COLUMN grade TEXT NOT NULL DEFAULT 'Near Mint'`);
+    }
+    if (!cols.includes('finish')) {
+      this.sql.exec(`ALTER TABLE cards ADD COLUMN finish TEXT NOT NULL DEFAULT 'Holo Foil'`);
+    }
+
+    const seeded = [...this.sql.exec(`SELECT value FROM settings WHERE key = 'seeded_pokemon_v2'`)];
     if (seeded.length === 0) {
+      this.sql.exec(`DELETE FROM cards WHERE id LIKE 'starter-%'`);
       for (const c of starterCards) {
         this.sql.exec(
-          `INSERT OR IGNORE INTO cards (id, name, price, rarity, description, image_data, sold, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT OR IGNORE INTO cards (id, name, price, grade, finish, description, image_data, sold, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           c.id,
           c.name,
           c.price,
-          c.rarity,
+          c.grade,
+          c.finish,
           c.description,
           c.imageData,
           c.sold ? 1 : 0,
           c.createdAt
         );
       }
-      this.sql.exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ('seeded', '1')`);
+      this.sql.exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ('seeded_pokemon_v2', '1')`);
     }
   }
 
@@ -64,7 +75,8 @@ export class PoisonBugStore extends DurableObject {
       id: row.id,
       name: row.name,
       price: Number(row.price),
-      rarity: row.rarity,
+      grade: row.grade || row.rarity || 'Near Mint',
+      finish: row.finish || 'Holo Foil',
       description: row.description,
       imageData: row.image_data,
       sold: Boolean(row.sold),
@@ -123,12 +135,19 @@ export class PoisonBugStore extends DurableObject {
         const body = await request.json();
         const name = String(body.name || '').trim();
         const price = Number(body.price);
-        const rarity = String(body.rarity || 'Holo Rare').trim();
+        const grade = String(body.grade || '').trim();
+        const finish = String(body.finish || '').trim();
         const description = String(body.description || '').trim();
         const imageData = String(body.imageData || '');
 
         if (!imageData.startsWith('data:image/')) {
           return this.json(400, { error: 'You must upload a card image to list a card.' });
+        }
+        if (!grade) {
+          return this.json(400, { error: 'Card grade (Mint, Near Mint, etc.) is required.' });
+        }
+        if (!finish) {
+          return this.json(400, { error: 'Card finish (Foil, Normal, etc.) is required.' });
         }
         if (!name || !Number.isFinite(price) || price <= 0) {
           return this.json(400, { error: 'Card name and valid sale price are required.' });
@@ -137,12 +156,13 @@ export class PoisonBugStore extends DurableObject {
         const id = 'card-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
         const createdAt = new Date().toISOString();
         this.sql.exec(
-          `INSERT INTO cards (id, name, price, rarity, description, image_data, sold, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 0, ?)`,
+          `INSERT INTO cards (id, name, price, grade, finish, description, image_data, sold, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
           id,
           name,
           Number(price.toFixed(2)),
-          rarity,
+          grade,
+          finish,
           description,
           imageData,
           createdAt

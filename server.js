@@ -13,26 +13,37 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(DB_PATH);
 db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
 
-// Seed starter cards once on initial database creation
-const seededRow = db.prepare(`SELECT value FROM settings WHERE key = 'seeded'`).get();
-if (!seededRow) {
+// Ensure grade & finish columns exist if upgrading an older local DB
+const cols = db.prepare(`PRAGMA table_info(cards)`).all().map((c) => c.name);
+if (!cols.includes('grade')) {
+  db.exec(`ALTER TABLE cards ADD COLUMN grade TEXT NOT NULL DEFAULT 'Near Mint'`);
+}
+if (!cols.includes('finish')) {
+  db.exec(`ALTER TABLE cards ADD COLUMN finish TEXT NOT NULL DEFAULT 'Holo Foil'`);
+}
+
+// Seed real Pokémon cards and remove any old placeholder cards
+const seededPokemonRow = db.prepare(`SELECT value FROM settings WHERE key = 'seeded_pokemon_v2'`).get();
+if (!seededPokemonRow) {
+  db.exec(`DELETE FROM cards WHERE id LIKE 'starter-%'`);
   const insertCard = db.prepare(`
-    INSERT OR IGNORE INTO cards (id, name, price, rarity, description, image_data, sold, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO cards (id, name, price, grade, finish, description, image_data, sold, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const c of starterCards) {
     insertCard.run(
       c.id,
       c.name,
       c.price,
-      c.rarity,
+      c.grade,
+      c.finish,
       c.description,
       c.imageData,
       c.sold ? 1 : 0,
       c.createdAt
     );
   }
-  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('seeded', '1')`).run();
+  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('seeded_pokemon_v2', '1')`).run();
 }
 
 const MIME_TYPES = {
@@ -93,7 +104,8 @@ function mapCardRow(row) {
     id: row.id,
     name: row.name,
     price: Number(row.price),
-    rarity: row.rarity,
+    grade: row.grade || row.rarity || 'Near Mint',
+    finish: row.finish || 'Holo Foil',
     description: row.description,
     imageData: row.image_data,
     sold: Boolean(row.sold),
@@ -144,12 +156,19 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const name = String(body.name || '').trim();
       const price = Number(body.price);
-      const rarity = String(body.rarity || 'Holo Rare').trim();
+      const grade = String(body.grade || '').trim();
+      const finish = String(body.finish || '').trim();
       const description = String(body.description || '').trim();
       const imageData = String(body.imageData || '');
 
       if (!imageData.startsWith('data:image/')) {
         return sendJson(res, 400, { error: 'You must upload a card image to list a card.' });
+      }
+      if (!grade) {
+        return sendJson(res, 400, { error: 'Card grade (Mint, Near Mint, etc.) is required.' });
+      }
+      if (!finish) {
+        return sendJson(res, 400, { error: 'Card finish (Foil, Normal, etc.) is required.' });
       }
       if (!name) {
         return sendJson(res, 400, { error: 'Card name is required.' });
@@ -162,9 +181,9 @@ const server = http.createServer(async (req, res) => {
       const createdAt = new Date().toISOString();
 
       db.prepare(`
-        INSERT INTO cards (id, name, price, rarity, description, image_data, sold, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-      `).run(id, name, Number(price.toFixed(2)), rarity, description, imageData, createdAt);
+        INSERT INTO cards (id, name, price, grade, finish, description, image_data, sold, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+      `).run(id, name, Number(price.toFixed(2)), grade, finish, description, imageData, createdAt);
 
       const created = db.prepare(`SELECT * FROM cards WHERE id = ?`).get(id);
       return sendJson(res, 201, { card: mapCardRow(created) });
