@@ -167,14 +167,27 @@ export class PoisonBugStore extends DurableObject {
         }
 
         const body = await request.json();
+        const nextName = body.name !== undefined ? String(body.name).trim() || existing.name : existing.name;
         const nextPrice = body.price !== undefined ? Number(body.price) : Number(existing.price);
+        const nextGrade = body.grade !== undefined ? String(body.grade).trim() || existing.grade : existing.grade;
+        const nextFinish = body.finish !== undefined ? String(body.finish).trim() || existing.finish : existing.finish;
+        const nextDesc = body.description !== undefined ? String(body.description).trim() : existing.description;
+        const nextImage =
+          body.imageData && String(body.imageData).startsWith('data:image/')
+            ? String(body.imageData)
+            : existing.image_data;
         const nextSold = body.sold !== undefined ? (body.sold ? 1 : 0) : existing.sold;
         const nextSoldAt = nextSold ? existing.sold_at : null;
         const nextBuyer = nextSold ? existing.buyer_name : null;
 
         this.sql.exec(
-          `UPDATE cards SET price = ?, sold = ?, sold_at = ?, buyer_name = ? WHERE id = ?`,
+          `UPDATE cards SET name = ?, price = ?, grade = ?, finish = ?, description = ?, image_data = ?, sold = ?, sold_at = ?, buyer_name = ? WHERE id = ?`,
+          nextName,
           Number(nextPrice.toFixed(2)),
+          nextGrade,
+          nextFinish,
+          nextDesc,
+          nextImage,
           nextSold,
           nextSoldAt,
           nextBuyer,
@@ -182,6 +195,22 @@ export class PoisonBugStore extends DurableObject {
         );
         const updated = [...this.sql.exec(`SELECT * FROM cards WHERE id = ?`, id)][0];
         return this.json(200, { card: this.mapCard(updated) });
+      }
+
+      if (pathname === '/api/config' && method === 'GET') {
+        const rows = [...this.sql.exec(`SELECT value FROM settings WHERE key = 'shop_config'`)];
+        let config = null;
+        try {
+          config = rows[0] && rows[0].value ? JSON.parse(rows[0].value) : null;
+        } catch (_) {}
+        return this.json(200, { config });
+      }
+
+      if (pathname === '/api/config' && method === 'PUT') {
+        const body = await request.json();
+        const cfg = body && body.config && typeof body.config === 'object' ? body.config : {};
+        this.sql.exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ('shop_config', ?)`, JSON.stringify(cfg));
+        return this.json(200, { ok: true, config: cfg });
       }
 
       if (pathname === '/api/checkout' && method === 'POST') {

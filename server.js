@@ -187,19 +187,43 @@ const server = http.createServer(async (req, res) => {
       }
 
       const body = await readJsonBody(req);
+      const nextName = body.name !== undefined ? String(body.name).trim() || existing.name : existing.name;
       const nextPrice = body.price !== undefined ? Number(body.price) : Number(existing.price);
+      const nextGrade = body.grade !== undefined ? String(body.grade).trim() || existing.grade : existing.grade;
+      const nextFinish = body.finish !== undefined ? String(body.finish).trim() || existing.finish : existing.finish;
+      const nextDesc = body.description !== undefined ? String(body.description).trim() : existing.description;
+      const nextImage =
+        body.imageData && String(body.imageData).startsWith('data:image/')
+          ? String(body.imageData)
+          : existing.image_data;
       const nextSold = body.sold !== undefined ? (body.sold ? 1 : 0) : existing.sold;
       const nextSoldAt = nextSold ? existing.sold_at : null;
       const nextBuyer = nextSold ? existing.buyer_name : null;
 
       db.prepare(`
         UPDATE cards
-        SET price = ?, sold = ?, sold_at = ?, buyer_name = ?
+        SET name = ?, price = ?, grade = ?, finish = ?, description = ?, image_data = ?, sold = ?, sold_at = ?, buyer_name = ?
         WHERE id = ?
-      `).run(Number(nextPrice.toFixed(2)), nextSold, nextSoldAt, nextBuyer, id);
+      `).run(nextName, Number(nextPrice.toFixed(2)), nextGrade, nextFinish, nextDesc, nextImage, nextSold, nextSoldAt, nextBuyer, id);
 
       const updated = db.prepare(`SELECT * FROM cards WHERE id = ?`).get(id);
       return sendJson(res, 200, { card: mapCardRow(updated) });
+    }
+
+    if (pathname === '/api/config' && req.method === 'GET') {
+      const row = db.prepare(`SELECT value FROM settings WHERE key = 'shop_config'`).get();
+      let config = null;
+      try {
+        config = row && row.value ? JSON.parse(row.value) : null;
+      } catch (_) {}
+      return sendJson(res, 200, { config });
+    }
+
+    if (pathname === '/api/config' && req.method === 'PUT') {
+      const body = await readJsonBody(req);
+      const cfg = body && body.config && typeof body.config === 'object' ? body.config : {};
+      db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('shop_config', ?)`).run(JSON.stringify(cfg));
+      return sendJson(res, 200, { ok: true, config: cfg });
     }
 
     if (pathname === '/api/checkout' && req.method === 'POST') {

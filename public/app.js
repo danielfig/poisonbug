@@ -10,6 +10,137 @@
     'Click "List a Card" if you are the owner! 🪲'
   ];
 
+  const DEFAULT_GRADES = [
+    'Gem Mint',
+    'Mint',
+    'Near Mint',
+    'Lightly Played',
+    'Moderately Played',
+    'Heavily Played',
+    'Damaged'
+  ];
+
+  const DEFAULT_FINISHES = [
+    'Normal (Non-Foil)',
+    'Holo Foil',
+    'Reverse Holo',
+    'Full Art Foil',
+    'Textured / Special Illustration Foil',
+    'Radiant / Sparkle Foil',
+    'Gold / Hyper Foil'
+  ];
+
+  const THEME_PRESETS = {
+    poisonbug: {
+      name: 'PoisonBug Neon',
+      colorPrimary: '#d946ef',
+      colorAccent: '#4ade80',
+      colorBg: '#0b0616',
+      colorCard: '#1c1236',
+      bugShellColor: '#9333ea',
+      bugSpotsColor: '#4ade80'
+    },
+    charizard: {
+      name: 'Charizard Flame',
+      colorPrimary: '#f97316',
+      colorAccent: '#facc15',
+      colorBg: '#140705',
+      colorCard: '#29100b',
+      bugShellColor: '#ea580c',
+      bugSpotsColor: '#facc15'
+    },
+    blastoise: {
+      name: 'Blastoise Ocean',
+      colorPrimary: '#38bdf8',
+      colorAccent: '#2dd4bf',
+      colorBg: '#040d1a',
+      colorCard: '#0c1e38',
+      bugShellColor: '#0284c7',
+      bugSpotsColor: '#2dd4bf'
+    },
+    pikachu: {
+      name: 'Pikachu Volt',
+      colorPrimary: '#facc15',
+      colorAccent: '#fb923c',
+      colorBg: '#121004',
+      colorCard: '#262109',
+      bugShellColor: '#eab308',
+      bugSpotsColor: '#ef4444'
+    },
+    mewtwo: {
+      name: 'Mewtwo Psychic',
+      colorPrimary: '#f472b6',
+      colorAccent: '#c084fc',
+      colorBg: '#0f0720',
+      colorCard: '#231344',
+      bugShellColor: '#ec4899',
+      bugSpotsColor: '#a855f7'
+    },
+    rayquaza: {
+      name: 'Rayquaza Emerald',
+      colorPrimary: '#10b981',
+      colorAccent: '#fbbf24',
+      colorBg: '#04130d',
+      colorCard: '#0a291d',
+      bugShellColor: '#059669',
+      bugSpotsColor: '#fbbf24'
+    },
+    umbreon: {
+      name: 'Umbreon Moon',
+      colorPrimary: '#eab308',
+      colorAccent: '#60a5fa',
+      colorBg: '#06080f',
+      colorCard: '#111728',
+      bugShellColor: '#1e293b',
+      bugSpotsColor: '#eab308'
+    },
+    alabaster: {
+      name: 'Collector Slate',
+      colorPrimary: '#818cf8',
+      colorAccent: '#34d399',
+      colorBg: '#0f172a',
+      colorCard: '#1e293b',
+      bugShellColor: '#6366f1',
+      bugSpotsColor: '#34d399'
+    }
+  };
+
+  const DEFAULT_SHOP_CONFIG = {
+    preset: 'poisonbug',
+    colorPrimary: '#d946ef',
+    colorAccent: '#4ade80',
+    colorBg: '#0b0616',
+    colorCard: '#1c1236',
+    bgPattern: 'glow',
+    fontStyle: 'modern',
+    brandFirst: 'Poison',
+    brandSecond: 'Bug',
+    brandTag: 'CARDS',
+    bugShellColor: '#9333ea',
+    bugSpotsColor: '#4ade80',
+    bugSize: 38,
+    bugAnim: 'float',
+    bugMessages: [...BUG_MESSAGES],
+    gridDensity: 'standard',
+    cardFrame: 'neon',
+    cardRadius: 18,
+    imageFit: 'contain',
+    holoTilt: true,
+    priceReveal: 'scroll',
+    currency: '$',
+    bannerEnabled: false,
+    bannerText: '🔥 Free protective sleeve & toploader with every card!',
+    heroMain: 'Find Your Next Favorite',
+    heroHighlight: 'Trading Card',
+    heroSub:
+      'Every card is photographed and listed directly by the PoisonBug shop owner. Use the search bar above or scroll down a little bit to reveal all cards for sale and their prices!',
+    showShowcase: true,
+    sectionTitle: 'Cards For Sale',
+    searchPlaceholder: 'Search for the card you want...',
+    customGrades: [...DEFAULT_GRADES],
+    customFinishes: [...DEFAULT_FINISHES]
+  };
+
   // =========================================================
   // DUAL STORAGE ENGINE (Server API + IndexedDB Static Fallback)
   // =========================================================
@@ -161,7 +292,14 @@
       if (!(await this.verifyPin(pin))) throw new Error('Invalid Owner PIN.');
       const existing = await this.idbGet('cards', id);
       if (!existing) throw new Error('Card not found.');
+      if (patch.name !== undefined && String(patch.name).trim()) existing.name = String(patch.name).trim();
       if (patch.price !== undefined) existing.price = Number(patch.price);
+      if (patch.grade !== undefined && String(patch.grade).trim()) existing.grade = String(patch.grade).trim();
+      if (patch.finish !== undefined && String(patch.finish).trim()) existing.finish = String(patch.finish).trim();
+      if (patch.description !== undefined) existing.description = String(patch.description).trim();
+      if (patch.imageData && String(patch.imageData).startsWith('data:image/')) {
+        existing.imageData = String(patch.imageData);
+      }
       if (patch.sold !== undefined) {
         existing.sold = Boolean(patch.sold);
         if (!existing.sold) {
@@ -177,6 +315,21 @@
       if (!(await this.verifyPin(pin))) throw new Error('Invalid Owner PIN.');
       await this.idbDelete('cards', id);
       return true;
+    }
+
+    async getConfig() {
+      await this.ensureSeeded();
+      const rec = await this.idbGet('settings', 'shop_config');
+      if (rec && rec.value && typeof rec.value === 'object') {
+        return rec.value;
+      }
+      return null;
+    }
+
+    async saveConfig(config) {
+      await this.ensureSeeded();
+      await this.idbPut('settings', { key: 'shop_config', value: config });
+      return config;
     }
 
     async checkout({ cardIds, buyerName, buyerNote }) {
@@ -335,6 +488,19 @@
       });
       return data.orders || [];
     }
+
+    async getConfig() {
+      const data = await this.request('/api/config').catch(() => ({ config: null }));
+      return data.config || null;
+    }
+
+    async saveConfig(config) {
+      await this.request('/api/config', {
+        method: 'PUT',
+        body: JSON.stringify({ config })
+      }).catch(() => {});
+      return config;
+    }
   }
 
   let backendInitPromise = null;
@@ -367,8 +533,41 @@
   }
 
   // =========================================================
-  // APP STATE
+  // APP STATE & SHOP CUSTOMIZATION ENGINE
   // =========================================================
+  function loadLocalConfig() {
+    try {
+      const raw = localStorage.getItem('poisonbug_shop_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_SHOP_CONFIG,
+            ...parsed,
+            bugMessages:
+              Array.isArray(parsed.bugMessages) && parsed.bugMessages.length > 0
+                ? parsed.bugMessages
+                : [...DEFAULT_SHOP_CONFIG.bugMessages],
+            customGrades:
+              Array.isArray(parsed.customGrades) && parsed.customGrades.length > 0
+                ? parsed.customGrades
+                : [...DEFAULT_SHOP_CONFIG.customGrades],
+            customFinishes:
+              Array.isArray(parsed.customFinishes) && parsed.customFinishes.length > 0
+                ? parsed.customFinishes
+                : [...DEFAULT_SHOP_CONFIG.customFinishes]
+          };
+        }
+      }
+    } catch (_) {}
+    return {
+      ...DEFAULT_SHOP_CONFIG,
+      bugMessages: [...DEFAULT_SHOP_CONFIG.bugMessages],
+      customGrades: [...DEFAULT_SHOP_CONFIG.customGrades],
+      customFinishes: [...DEFAULT_SHOP_CONFIG.customFinishes]
+    };
+  }
+
   const state = {
     backend: null,
     cards: [],
@@ -379,13 +578,219 @@
     sort: 'newest',
     searchQuery: '',
     uploadedImageData: '',
+    editedCardImageData: '',
     bugMsgIndex: 0,
-    hasScrolledPastHero: false
+    hasScrolledPastHero: false,
+    config: loadLocalConfig()
   };
 
   function formatPrice(num) {
     const val = Number(num) || 0;
-    return '$' + val.toFixed(2);
+    const sym = (state.config && state.config.currency) || '$';
+    return sym + val.toFixed(2);
+  }
+
+  function hexToRgba(hex, alpha) {
+    const clean = String(hex || '#d946ef').replace('#', '');
+    const full =
+      clean.length === 3
+        ? clean
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : clean.padEnd(6, '0');
+    const num = parseInt(full, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function shiftHexBrightness(hex, delta) {
+    const clean = String(hex || '#1c1236').replace('#', '');
+    const full =
+      clean.length === 3
+        ? clean
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : clean.padEnd(6, '0');
+    const num = parseInt(full, 16);
+    const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+    const r = clamp(((num >> 16) & 255) + delta);
+    const g = clamp(((num >> 8) & 255) + delta);
+    const b = clamp((num & 255) + delta);
+    return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function populateGradeAndFinishSelects() {
+    const grades = state.config.customGrades.length ? state.config.customGrades : DEFAULT_GRADES;
+    const finishes = state.config.customFinishes.length ? state.config.customFinishes : DEFAULT_FINISHES;
+
+    const listGradeSel = document.getElementById('card-grade-input');
+    const listFinishSel = document.getElementById('card-finish-input');
+    const editGradeSel = document.getElementById('edit-grade-input');
+    const editFinishSel = document.getElementById('edit-finish-input');
+
+    if (listGradeSel) {
+      const cur = listGradeSel.value;
+      listGradeSel.innerHTML =
+        `<option value="" selected disabled>Select grade...</option>` +
+        grades.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+      if (cur && grades.includes(cur)) listGradeSel.value = cur;
+    }
+
+    if (listFinishSel) {
+      const cur = listFinishSel.value;
+      listFinishSel.innerHTML =
+        `<option value="" selected disabled>Select foil or normal...</option>` +
+        finishes.map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+      if (cur && finishes.includes(cur)) listFinishSel.value = cur;
+    }
+
+    if (editGradeSel) {
+      const cur = editGradeSel.value;
+      editGradeSel.innerHTML = grades
+        .map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`)
+        .join('');
+      if (cur) editGradeSel.value = cur;
+    }
+
+    if (editFinishSel) {
+      const cur = editFinishSel.value;
+      editFinishSel.innerHTML = finishes
+        .map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`)
+        .join('');
+      if (cur) editFinishSel.value = cur;
+    }
+  }
+
+  function applyShopConfig() {
+    const cfg = state.config;
+    const root = document.documentElement;
+
+    // 1. Dynamic Palette Variables
+    root.style.setProperty('--purple-neon', cfg.colorPrimary);
+    root.style.setProperty('--purple-core', shiftHexBrightness(cfg.colorPrimary, -24));
+    root.style.setProperty('--purple-bright', shiftHexBrightness(cfg.colorPrimary, 35));
+    root.style.setProperty('--poison-green', cfg.colorAccent);
+    root.style.setProperty('--poison-emerald', shiftHexBrightness(cfg.colorAccent, -28));
+    root.style.setProperty('--bg-deep', cfg.colorBg);
+    root.style.setProperty('--bg-surface', shiftHexBrightness(cfg.colorBg, 14));
+    root.style.setProperty('--bg-card', cfg.colorCard);
+    root.style.setProperty('--bg-elevated', shiftHexBrightness(cfg.colorCard, 18));
+    root.style.setProperty('--border-subtle', hexToRgba(cfg.colorPrimary, 0.25));
+    root.style.setProperty('--border-glow', hexToRgba(cfg.colorPrimary, 0.58));
+    root.style.setProperty('--radius-lg', `${Number(cfg.cardRadius) || 18}px`);
+    root.style.setProperty('--card-image-fit', cfg.imageFit || 'contain');
+
+    // 2. Body Data Attributes for CSS Layout / Pattern / Typography / Frame
+    document.body.dataset.bgPattern = cfg.bgPattern || 'glow';
+    document.body.dataset.fontStyle = cfg.fontStyle || 'modern';
+    document.body.dataset.bugAnim = cfg.bugAnim || 'float';
+    document.body.dataset.gridDensity = cfg.gridDensity || 'standard';
+    document.body.dataset.cardFrame = cfg.cardFrame || 'neon';
+    document.body.dataset.holoTilt = cfg.holoTilt ? 'true' : 'false';
+
+    // 3. Little Top Bug Mascot Customization
+    const bugSvg = document.getElementById('top-bug-svg');
+    if (bugSvg) {
+      const sz = Number(cfg.bugSize) || 38;
+      bugSvg.setAttribute('width', String(sz));
+      bugSvg.setAttribute('height', String(sz));
+    }
+    const shell1 = document.getElementById('bug-shell-stop-1');
+    const shell2 = document.getElementById('bug-shell-stop-2');
+    const shell3 = document.getElementById('bug-shell-stop-3');
+    const head1 = document.getElementById('bug-head-stop-1');
+    const head2 = document.getElementById('bug-head-stop-2');
+    if (shell1) shell1.setAttribute('stop-color', shiftHexBrightness(cfg.bugShellColor, 48));
+    if (shell2) shell2.setAttribute('stop-color', cfg.bugShellColor);
+    if (shell3) shell3.setAttribute('stop-color', shiftHexBrightness(cfg.bugShellColor, -48));
+    if (head1) head1.setAttribute('stop-color', shiftHexBrightness(cfg.bugShellColor, -14));
+    if (head2) head2.setAttribute('stop-color', shiftHexBrightness(cfg.bugShellColor, -65));
+
+    const legs = document.getElementById('bug-legs-group');
+    const ant = document.getElementById('bug-antennae-group');
+    const shellBody = document.getElementById('bug-body-shell');
+    if (legs) legs.setAttribute('stroke', shiftHexBrightness(cfg.bugShellColor, 38));
+    if (ant) ant.setAttribute('stroke', shiftHexBrightness(cfg.bugShellColor, 52));
+    if (shellBody) shellBody.setAttribute('stroke', shiftHexBrightness(cfg.bugShellColor, 60));
+
+    document.querySelectorAll('.bug-spot-accent').forEach((el) => {
+      el.setAttribute('fill', cfg.bugSpotsColor);
+    });
+    document.querySelectorAll('.bug-spot-secondary').forEach((el) => {
+      el.setAttribute('fill', shiftHexBrightness(cfg.bugShellColor, 58));
+    });
+
+    const bugSpeech = document.getElementById('bug-speech');
+    const msgs = cfg.bugMessages && cfg.bugMessages.length ? cfg.bugMessages : BUG_MESSAGES;
+    if (bugSpeech) {
+      bugSpeech.textContent = msgs[state.bugMsgIndex % msgs.length];
+    }
+
+    // 4. Shop Brand & Announcement Banner
+    const brandFirst = document.getElementById('brand-first');
+    const brandSecond = document.getElementById('brand-second');
+    const brandTag = document.getElementById('brand-tag');
+    if (brandFirst) brandFirst.textContent = cfg.brandFirst || 'Poison';
+    if (brandSecond) brandSecond.textContent = cfg.brandSecond || 'Bug';
+    if (brandTag) {
+      brandTag.textContent = cfg.brandTag || '';
+      brandTag.classList.toggle('hidden', !cfg.brandTag);
+    }
+    const fullShopName = `${cfg.brandFirst || ''}${cfg.brandSecond || ''}`.trim() || 'PoisonBug';
+    document.title = `${fullShopName} — Collectible Card Shop`;
+    const footerBrandStrong = document.querySelector('.footer-brand strong');
+    if (footerBrandStrong) footerBrandStrong.textContent = fullShopName;
+
+    const bannerEl = document.getElementById('announcement-banner');
+    const bannerTxt = document.getElementById('announcement-banner-text');
+    if (bannerEl && bannerTxt) {
+      bannerTxt.textContent = cfg.bannerText || '';
+      bannerEl.classList.toggle('hidden', !cfg.bannerEnabled || !cfg.bannerText.trim());
+    }
+
+    // 5. Hero & Marketplace Copy
+    const heroMainEl = document.getElementById('hero-title-main');
+    const heroHighEl = document.getElementById('hero-title-highlight');
+    const heroSubEl = document.getElementById('hero-subtitle-text');
+    const showcaseEl = document.getElementById('hero-showcase');
+    const heroGridEl = document.getElementById('hero-content-grid');
+    const secTitleEl = document.getElementById('section-title-text');
+    const secEyebrowEl = document.getElementById('section-eyebrow-text');
+    const searchInputEl = document.getElementById('search-input');
+
+    if (heroMainEl) heroMainEl.textContent = cfg.heroMain || 'Find Your Next Favorite';
+    if (heroHighEl) heroHighEl.textContent = cfg.heroHighlight || 'Trading Card';
+    if (heroSubEl) heroSubEl.textContent = cfg.heroSub || '';
+    if (showcaseEl) showcaseEl.classList.toggle('hidden', !cfg.showShowcase);
+    if (heroGridEl) heroGridEl.classList.toggle('showcase-hidden', !cfg.showShowcase);
+    if (secTitleEl) secTitleEl.textContent = cfg.sectionTitle || 'Cards For Sale';
+    if (secEyebrowEl) secEyebrowEl.textContent = `${fullShopName.toUpperCase()} MARKETPLACE`;
+    if (searchInputEl) searchInputEl.placeholder = cfg.searchPlaceholder || 'Search for the card you want...';
+
+    // 6. Currency Symbols on Forms
+    document.querySelectorAll('.currency-prefix').forEach((el) => {
+      el.textContent = cfg.currency || '$';
+    });
+
+    populateGradeAndFinishSelects();
+  }
+
+  let saveConfigTimeout = null;
+  function persistShopConfig() {
+    localStorage.setItem('poisonbug_shop_config', JSON.stringify(state.config));
+    clearTimeout(saveConfigTimeout);
+    saveConfigTimeout = setTimeout(async () => {
+      try {
+        const backend = await getBackend();
+        if (backend && backend.saveConfig) {
+          await backend.saveConfig(state.config);
+        }
+      } catch (_) {}
+    }, 250);
   }
 
   function escapeHtml(str) {
@@ -461,6 +866,13 @@
 
   function setupPriceScrollObserver() {
     if (priceObserver) priceObserver.disconnect();
+    if (state.config && state.config.priceReveal === 'always') {
+      document.querySelectorAll('#cards-grid .card-price-row').forEach((row) => {
+        row.classList.add('revealed');
+      });
+      return;
+    }
+
     priceObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -613,7 +1025,11 @@
         const grade = getCardGrade(card);
         const finish = getCardFinish(card);
         const foilClass = isFoilFinish(finish) ? 'is-foil' : '';
-        const revealImmediately = state.hasScrolledPastHero || window.scrollY > 55 || Boolean(state.searchQuery.trim());
+        const revealImmediately =
+          (state.config && state.config.priceReveal === 'always') ||
+          state.hasScrolledPastHero ||
+          window.scrollY > 55 ||
+          Boolean(state.searchQuery.trim());
         return `
         <article class="trading-card ${card.sold ? 'is-sold' : ''}" data-card-id="${escapeHtml(card.id)}">
           <div class="card-image-frame" data-action="zoom" data-id="${escapeHtml(card.id)}">
@@ -658,7 +1074,7 @@
               isOwner
                 ? `
               <div class="card-owner-tools">
-                <button type="button" class="owner-mini-btn" data-action="edit-price" data-id="${escapeHtml(card.id)}">🏷️ Price</button>
+                <button type="button" class="owner-mini-btn" data-action="edit-price" data-id="${escapeHtml(card.id)}">✏️ Edit</button>
                 ${
                   card.sold
                     ? `<button type="button" class="owner-mini-btn" data-action="relist" data-id="${escapeHtml(card.id)}">↺ Relist</button>`
@@ -861,6 +1277,132 @@
   }
 
   // =========================================================
+  // CUSTOMIZER STUDIO UI & HELPERS
+  // =========================================================
+  function openCustomizer() {
+    syncCustomizerInputsFromState();
+    document.getElementById('customizer-backdrop').classList.remove('hidden');
+    document.getElementById('customizer-drawer').classList.remove('hidden');
+  }
+
+  function closeCustomizer() {
+    document.getElementById('customizer-backdrop').classList.add('hidden');
+    document.getElementById('customizer-drawer').classList.add('hidden');
+  }
+
+  function renderThemePresets() {
+    const grid = document.getElementById('theme-presets-grid');
+    if (!grid) return;
+    grid.innerHTML = Object.entries(THEME_PRESETS)
+      .map(([key, p]) => {
+        const active = state.config.preset === key ? 'active' : '';
+        return `
+        <button type="button" class="preset-btn ${active}" data-preset-key="${escapeHtml(key)}">
+          <span class="preset-swatches">
+            <span class="preset-dot" style="background:${escapeHtml(p.colorPrimary)}"></span>
+            <span class="preset-dot" style="background:${escapeHtml(p.colorAccent)}"></span>
+            <span class="preset-dot" style="background:${escapeHtml(p.colorBg)}"></span>
+          </span>
+          <span>${escapeHtml(p.name)}</span>
+        </button>
+      `;
+      })
+      .join('');
+  }
+
+  function renderTagChips() {
+    const gradesList = document.getElementById('cust-grades-list');
+    const finishesList = document.getElementById('cust-finishes-list');
+
+    if (gradesList) {
+      gradesList.innerHTML = state.config.customGrades
+        .map(
+          (g, idx) => `
+        <span class="tag-chip">
+          <span>${escapeHtml(g)}</span>
+          <button type="button" data-remove-grade="${idx}" aria-label="Remove grade">✕</button>
+        </span>
+      `
+        )
+        .join('');
+    }
+
+    if (finishesList) {
+      finishesList.innerHTML = state.config.customFinishes
+        .map(
+          (f, idx) => `
+        <span class="tag-chip">
+          <span>${escapeHtml(f)}</span>
+          <button type="button" data-remove-finish="${idx}" aria-label="Remove finish">✕</button>
+        </span>
+      `
+        )
+        .join('');
+    }
+  }
+
+  function syncCustomizerInputsFromState() {
+    const cfg = state.config;
+    renderThemePresets();
+    renderTagChips();
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+    const setCheck = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = Boolean(val);
+    };
+
+    setVal('cust-color-primary', cfg.colorPrimary);
+    setVal('cust-color-accent', cfg.colorAccent);
+    setVal('cust-color-bg', cfg.colorBg);
+    setVal('cust-color-card', cfg.colorCard);
+    setVal('cust-bg-pattern', cfg.bgPattern);
+    setVal('cust-font-style', cfg.fontStyle);
+
+    setVal('cust-brand-first', cfg.brandFirst);
+    setVal('cust-brand-second', cfg.brandSecond);
+    setVal('cust-brand-tag', cfg.brandTag);
+    setVal('cust-bug-shell', cfg.bugShellColor);
+    setVal('cust-bug-spots', cfg.bugSpotsColor);
+    setVal('cust-bug-size', cfg.bugSize);
+    const bugSzLabel = document.getElementById('cust-bug-size-val');
+    if (bugSzLabel) bugSzLabel.textContent = `${cfg.bugSize}px`;
+    setVal('cust-bug-anim', cfg.bugAnim);
+    setVal('cust-bug-messages', (cfg.bugMessages || BUG_MESSAGES).join('\n'));
+
+    setVal('cust-grid-density', cfg.gridDensity);
+    setVal('cust-card-frame', cfg.cardFrame);
+    setVal('cust-card-radius', cfg.cardRadius);
+    const radLabel = document.getElementById('cust-card-radius-val');
+    if (radLabel) radLabel.textContent = `${cfg.cardRadius}px`;
+    setVal('cust-image-fit', cfg.imageFit);
+    setCheck('cust-holo-tilt', cfg.holoTilt);
+    setVal('cust-price-reveal', cfg.priceReveal);
+    setVal('cust-currency', cfg.currency);
+
+    setCheck('cust-banner-enabled', cfg.bannerEnabled);
+    setVal('cust-banner-text', cfg.bannerText);
+    setVal('cust-hero-main', cfg.heroMain);
+    setVal('cust-hero-highlight', cfg.heroHighlight);
+    setVal('cust-hero-sub', cfg.heroSub);
+    setCheck('cust-show-showcase', cfg.showShowcase);
+    setVal('cust-section-title', cfg.sectionTitle);
+    setVal('cust-search-placeholder', cfg.searchPlaceholder);
+  }
+
+  function updateConfigField(patch, rerenderCardsNeeded = false) {
+    Object.assign(state.config, patch);
+    applyShopConfig();
+    persistShopConfig();
+    if (rerenderCardsNeeded) {
+      renderCards();
+    }
+  }
+
+  // =========================================================
   // EVENT LISTENERS
   // =========================================================
   function bindEvents() {
@@ -871,8 +1413,12 @@
       bugBtn.classList.remove('bug-hop');
       void bugBtn.offsetWidth;
       bugBtn.classList.add('bug-hop');
-      state.bugMsgIndex = (state.bugMsgIndex + 1) % BUG_MESSAGES.length;
-      bugSpeech.textContent = BUG_MESSAGES[state.bugMsgIndex];
+      const msgs =
+        state.config.bugMessages && state.config.bugMessages.length
+          ? state.config.bugMessages
+          : BUG_MESSAGES;
+      state.bugMsgIndex = (state.bugMsgIndex + 1) % msgs.length;
+      bugSpeech.textContent = msgs[state.bugMsgIndex];
     });
 
     // 2. Top Search Bar
@@ -1211,7 +1757,33 @@
     });
 
     // 6. Card Grid Delegated Actions (Zoom, Cart, Buy, Owner Edit/Delete/Relist)
-    document.getElementById('cards-grid').addEventListener('click', async (e) => {
+    const cardsGridEl = document.getElementById('cards-grid');
+
+    // Interactive 3D Holo Tilt on Mousemove when holoTilt is enabled
+    cardsGridEl.addEventListener('mousemove', (e) => {
+      if (!state.config.holoTilt) return;
+      const cardEl = e.target.closest('.trading-card');
+      if (!cardEl) return;
+      const rect = cardEl.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      cardEl.style.transform = `perspective(700px) rotateX(${(-y * 8).toFixed(2)}deg) rotateY(${(x * 8).toFixed(2)}deg) translateY(-5px)`;
+    });
+
+    cardsGridEl.addEventListener('mouseleave', () => {
+      cardsGridEl.querySelectorAll('.trading-card').forEach((el) => {
+        el.style.transform = '';
+      });
+    }, true);
+
+    cardsGridEl.addEventListener('mouseout', (e) => {
+      const cardEl = e.target.closest('.trading-card');
+      if (cardEl && !cardEl.contains(e.relatedTarget)) {
+        cardEl.style.transform = '';
+      }
+    });
+
+    cardsGridEl.addEventListener('click', async (e) => {
       const target = e.target.closest('[data-action]');
       if (!target) return;
       const action = target.dataset.action;
@@ -1240,9 +1812,30 @@
         }
         openCart();
       } else if (action === 'edit-price') {
+        populateGradeAndFinishSelects();
+        state.editedCardImageData = '';
+        const editImgInput = document.getElementById('edit-image-input');
+        if (editImgInput) editImgInput.value = '';
         document.getElementById('edit-card-id').value = card.id;
-        document.getElementById('edit-card-name-label').textContent = `Card: ${card.name}`;
+        document.getElementById('edit-card-name-label').textContent = `Editing: ${card.name}`;
+        document.getElementById('edit-name-input').value = card.name;
         document.getElementById('edit-price-input').value = Number(card.price).toFixed(2);
+
+        const gradeSel = document.getElementById('edit-grade-input');
+        const curGrade = getCardGrade(card);
+        if (![...gradeSel.options].some((o) => o.value === curGrade)) {
+          gradeSel.insertAdjacentHTML('afterbegin', `<option value="${escapeHtml(curGrade)}">${escapeHtml(curGrade)}</option>`);
+        }
+        gradeSel.value = curGrade;
+
+        const finishSel = document.getElementById('edit-finish-input');
+        const curFinish = getCardFinish(card);
+        if (![...finishSel.options].some((o) => o.value === curFinish)) {
+          finishSel.insertAdjacentHTML('afterbegin', `<option value="${escapeHtml(curFinish)}">${escapeHtml(curFinish)}</option>`);
+        }
+        finishSel.value = curFinish;
+
+        document.getElementById('edit-desc-input').value = card.description || '';
         openModal('edit-price-modal');
       } else if (action === 'relist') {
         try {
@@ -1270,22 +1863,49 @@
       }
     });
 
-    // Save Edited Price
+    // Optional Photo Swap in Edit Card Modal
+    const editImageInput = document.getElementById('edit-image-input');
+    if (editImageInput) {
+      editImageInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files[0]) {
+          try {
+            state.editedCardImageData = await compressImageFile(e.target.files[0]);
+            showToast('📸 New card photo ready to save!');
+          } catch (err) {
+            showToast(err.message);
+          }
+        }
+      });
+    }
+
+    // Save Edited Card (Name, Price, Grade, Finish, Description, Optional Photo)
     document.getElementById('edit-price-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('edit-card-id').value;
+      const newName = document.getElementById('edit-name-input').value.trim();
       const newPrice = parseFloat(document.getElementById('edit-price-input').value);
-      if (isNaN(newPrice) || newPrice <= 0) return;
+      const newGrade = document.getElementById('edit-grade-input').value.trim();
+      const newFinish = document.getElementById('edit-finish-input').value.trim();
+      const newDesc = document.getElementById('edit-desc-input').value.trim();
+      if (!newName || isNaN(newPrice) || newPrice <= 0) return;
       try {
         const backend = await getBackend();
-        const updated = await backend.updateCard(state.ownerPin, id, {
-          price: Number(newPrice.toFixed(2))
-        });
+        const patch = {
+          name: newName,
+          price: Number(newPrice.toFixed(2)),
+          grade: newGrade,
+          finish: newFinish,
+          description: newDesc
+        };
+        if (state.editedCardImageData) {
+          patch.imageData = state.editedCardImageData;
+        }
+        const updated = await backend.updateCard(state.ownerPin, id, patch);
         const idx = state.cards.findIndex((c) => c.id === id);
         if (idx >= 0) state.cards[idx] = updated;
         closeModal('edit-price-modal');
         renderCards();
-        showToast(`🏷️ Updated sale price to ${formatPrice(updated.price)}!`);
+        showToast(`✨ Updated "${updated.name}" (${formatPrice(updated.price)})!`);
       } catch (err) {
         showToast(err.message);
       }
@@ -1351,6 +1971,276 @@
       }
     });
 
+    // 8. Shop Customizer Studio Drawer Events
+    document.getElementById('customize-open-btn').addEventListener('click', openCustomizer);
+    document.getElementById('owner-customize-btn').addEventListener('click', openCustomizer);
+    document.getElementById('close-customizer-btn').addEventListener('click', closeCustomizer);
+    document.getElementById('customizer-backdrop').addEventListener('click', closeCustomizer);
+    document.getElementById('cust-save-close-btn').addEventListener('click', () => {
+      persistShopConfig();
+      closeCustomizer();
+      showToast('🎨 Shop customizations saved!');
+    });
+
+    // Customizer Tabs
+    document.querySelectorAll('[data-cust-tab]').forEach((tabBtn) => {
+      tabBtn.addEventListener('click', () => {
+        const targetTab = tabBtn.dataset.custTab;
+        document.querySelectorAll('[data-cust-tab]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.custTab === targetTab);
+        });
+        document.querySelectorAll('[data-cust-panel]').forEach((panel) => {
+          panel.classList.toggle('hidden', panel.dataset.custPanel !== targetTab);
+        });
+      });
+    });
+
+    // 1-Click Theme Presets
+    document.getElementById('theme-presets-grid').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-preset-key]');
+      if (!btn) return;
+      const key = btn.dataset.presetKey;
+      const preset = THEME_PRESETS[key];
+      if (!preset) return;
+      updateConfigField({
+        preset: key,
+        colorPrimary: preset.colorPrimary,
+        colorAccent: preset.colorAccent,
+        colorBg: preset.colorBg,
+        colorCard: preset.colorCard,
+        bugShellColor: preset.bugShellColor,
+        bugSpotsColor: preset.bugSpotsColor
+      });
+      syncCustomizerInputsFromState();
+      showToast(`🎨 Applied "${preset.name}" theme!`);
+    });
+
+    // Live Color Pickers & Theme Controls
+    document.getElementById('cust-color-primary').addEventListener('input', (e) => {
+      updateConfigField({ preset: 'custom', colorPrimary: e.target.value });
+      renderThemePresets();
+    });
+    document.getElementById('cust-color-accent').addEventListener('input', (e) => {
+      updateConfigField({ preset: 'custom', colorAccent: e.target.value });
+      renderThemePresets();
+    });
+    document.getElementById('cust-color-bg').addEventListener('input', (e) => {
+      updateConfigField({ preset: 'custom', colorBg: e.target.value });
+      renderThemePresets();
+    });
+    document.getElementById('cust-color-card').addEventListener('input', (e) => {
+      updateConfigField({ preset: 'custom', colorCard: e.target.value });
+      renderThemePresets();
+    });
+    document.getElementById('cust-bg-pattern').addEventListener('change', (e) => {
+      updateConfigField({ bgPattern: e.target.value });
+    });
+    document.getElementById('cust-font-style').addEventListener('change', (e) => {
+      updateConfigField({ fontStyle: e.target.value });
+    });
+
+    // Top Bug & Brand Controls
+    document.getElementById('cust-brand-first').addEventListener('input', (e) => {
+      updateConfigField({ brandFirst: e.target.value });
+    });
+    document.getElementById('cust-brand-second').addEventListener('input', (e) => {
+      updateConfigField({ brandSecond: e.target.value });
+    });
+    document.getElementById('cust-brand-tag').addEventListener('input', (e) => {
+      updateConfigField({ brandTag: e.target.value });
+    });
+    document.getElementById('cust-bug-shell').addEventListener('input', (e) => {
+      updateConfigField({ bugShellColor: e.target.value });
+    });
+    document.getElementById('cust-bug-spots').addEventListener('input', (e) => {
+      updateConfigField({ bugSpotsColor: e.target.value });
+    });
+    document.getElementById('cust-bug-size').addEventListener('input', (e) => {
+      const sz = Number(e.target.value) || 38;
+      document.getElementById('cust-bug-size-val').textContent = `${sz}px`;
+      updateConfigField({ bugSize: sz });
+    });
+    document.getElementById('cust-bug-anim').addEventListener('change', (e) => {
+      updateConfigField({ bugAnim: e.target.value });
+    });
+    document.getElementById('cust-bug-messages').addEventListener('input', (e) => {
+      const lines = e.target.value
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      updateConfigField({ bugMessages: lines.length ? lines : [...BUG_MESSAGES] });
+    });
+
+    // Cards & Grid Layout Controls
+    document.getElementById('cust-grid-density').addEventListener('change', (e) => {
+      updateConfigField({ gridDensity: e.target.value });
+    });
+    document.getElementById('cust-card-frame').addEventListener('change', (e) => {
+      updateConfigField({ cardFrame: e.target.value });
+    });
+    document.getElementById('cust-card-radius').addEventListener('input', (e) => {
+      const r = Number(e.target.value) || 18;
+      document.getElementById('cust-card-radius-val').textContent = `${r}px`;
+      updateConfigField({ cardRadius: r });
+    });
+    document.getElementById('cust-image-fit').addEventListener('change', (e) => {
+      updateConfigField({ imageFit: e.target.value });
+    });
+    document.getElementById('cust-holo-tilt').addEventListener('change', (e) => {
+      updateConfigField({ holoTilt: e.target.checked });
+    });
+    document.getElementById('cust-price-reveal').addEventListener('change', (e) => {
+      updateConfigField({ priceReveal: e.target.value }, true);
+    });
+    document.getElementById('cust-currency').addEventListener('change', (e) => {
+      updateConfigField({ currency: e.target.value }, true);
+    });
+
+    // Texts, Banner & Custom Grades/Finishes Controls
+    document.getElementById('cust-banner-enabled').addEventListener('change', (e) => {
+      updateConfigField({ bannerEnabled: e.target.checked });
+    });
+    document.getElementById('cust-banner-text').addEventListener('input', (e) => {
+      updateConfigField({ bannerText: e.target.value });
+    });
+    document.getElementById('cust-hero-main').addEventListener('input', (e) => {
+      updateConfigField({ heroMain: e.target.value });
+    });
+    document.getElementById('cust-hero-highlight').addEventListener('input', (e) => {
+      updateConfigField({ heroHighlight: e.target.value });
+    });
+    document.getElementById('cust-hero-sub').addEventListener('input', (e) => {
+      updateConfigField({ heroSub: e.target.value });
+    });
+    document.getElementById('cust-show-showcase').addEventListener('change', (e) => {
+      updateConfigField({ showShowcase: e.target.checked });
+    });
+    document.getElementById('cust-section-title').addEventListener('input', (e) => {
+      updateConfigField({ sectionTitle: e.target.value });
+    });
+    document.getElementById('cust-search-placeholder').addEventListener('input', (e) => {
+      updateConfigField({ searchPlaceholder: e.target.value });
+    });
+
+    // Add / Remove Custom Grades
+    const addGrade = () => {
+      const inp = document.getElementById('cust-new-grade');
+      const val = inp.value.trim();
+      if (!val) return;
+      if (!state.config.customGrades.includes(val)) {
+        state.config.customGrades.push(val);
+        updateConfigField({ customGrades: [...state.config.customGrades] });
+        renderTagChips();
+      }
+      inp.value = '';
+    };
+    document.getElementById('cust-add-grade-btn').addEventListener('click', addGrade);
+    document.getElementById('cust-new-grade').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addGrade();
+      }
+    });
+    document.getElementById('cust-grades-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-remove-grade]');
+      if (!btn) return;
+      if (state.config.customGrades.length <= 1) {
+        showToast('Keep at least 1 grade option!');
+        return;
+      }
+      const idx = Number(btn.dataset.removeGrade);
+      state.config.customGrades.splice(idx, 1);
+      updateConfigField({ customGrades: [...state.config.customGrades] });
+      renderTagChips();
+    });
+
+    // Add / Remove Custom Finishes
+    const addFinish = () => {
+      const inp = document.getElementById('cust-new-finish');
+      const val = inp.value.trim();
+      if (!val) return;
+      if (!state.config.customFinishes.includes(val)) {
+        state.config.customFinishes.push(val);
+        updateConfigField({ customFinishes: [...state.config.customFinishes] });
+        renderTagChips();
+      }
+      inp.value = '';
+    };
+    document.getElementById('cust-add-finish-btn').addEventListener('click', addFinish);
+    document.getElementById('cust-new-finish').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addFinish();
+      }
+    });
+    document.getElementById('cust-finishes-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-remove-finish]');
+      if (!btn) return;
+      if (state.config.customFinishes.length <= 1) {
+        showToast('Keep at least 1 finish option!');
+        return;
+      }
+      const idx = Number(btn.dataset.removeFinish);
+      state.config.customFinishes.splice(idx, 1);
+      updateConfigField({ customFinishes: [...state.config.customFinishes] });
+      renderTagChips();
+    });
+
+    // Export / Import / Reset Customizer Config
+    document.getElementById('cust-export-btn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state.config, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'poisonbug-theme.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('⬇ Exported poisonbug-theme.json!');
+    });
+
+    const importFileInp = document.getElementById('cust-import-file');
+    document.getElementById('cust-import-btn').addEventListener('click', () => importFileInp.click());
+    importFileInp.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          state.config = {
+            ...DEFAULT_SHOP_CONFIG,
+            ...parsed,
+            bugMessages: Array.isArray(parsed.bugMessages) && parsed.bugMessages.length ? parsed.bugMessages : [...BUG_MESSAGES],
+            customGrades: Array.isArray(parsed.customGrades) && parsed.customGrades.length ? parsed.customGrades : [...DEFAULT_GRADES],
+            customFinishes: Array.isArray(parsed.customFinishes) && parsed.customFinishes.length ? parsed.customFinishes : [...DEFAULT_FINISHES]
+          };
+          applyShopConfig();
+          persistShopConfig();
+          syncCustomizerInputsFromState();
+          renderCards();
+          showToast('⬆ Imported custom shop theme!');
+        } catch (_) {
+          showToast('⚠️ Invalid theme JSON file.');
+        }
+      };
+      reader.readAsText(file);
+      importFileInp.value = '';
+    });
+
+    document.getElementById('cust-reset-btn').addEventListener('click', () => {
+      state.config = {
+        ...DEFAULT_SHOP_CONFIG,
+        bugMessages: [...BUG_MESSAGES],
+        customGrades: [...DEFAULT_GRADES],
+        customFinishes: [...DEFAULT_FINISHES]
+      };
+      applyShopConfig();
+      persistShopConfig();
+      syncCustomizerInputsFromState();
+      renderCards();
+      showToast('↺ Reset shop theme & settings to default!');
+    });
+
     // Close Modal Buttons & Escape Key
     document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
@@ -1366,6 +2256,7 @@
       if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay').forEach((m) => m.classList.add('hidden'));
         closeCart();
+        closeCustomizer();
       }
     });
   }
@@ -1374,8 +2265,34 @@
   // BOOTSTRAP
   // =========================================================
   async function init() {
+    applyShopConfig();
     bindEvents();
     const backend = await getBackend();
+
+    // Load saved backend config if available
+    if (backend && backend.getConfig) {
+      const savedCfg = await backend.getConfig().catch(() => null);
+      if (savedCfg && typeof savedCfg === 'object') {
+        state.config = {
+          ...DEFAULT_SHOP_CONFIG,
+          ...savedCfg,
+          bugMessages:
+            Array.isArray(savedCfg.bugMessages) && savedCfg.bugMessages.length
+              ? savedCfg.bugMessages
+              : [...DEFAULT_SHOP_CONFIG.bugMessages],
+          customGrades:
+            Array.isArray(savedCfg.customGrades) && savedCfg.customGrades.length
+              ? savedCfg.customGrades
+              : [...DEFAULT_SHOP_CONFIG.customGrades],
+          customFinishes:
+            Array.isArray(savedCfg.customFinishes) && savedCfg.customFinishes.length
+              ? savedCfg.customFinishes
+              : [...DEFAULT_SHOP_CONFIG.customFinishes]
+        };
+        localStorage.setItem('poisonbug_shop_config', JSON.stringify(state.config));
+        applyShopConfig();
+      }
+    }
 
     // Verify stored session PIN is still valid
     if (state.ownerPin) {

@@ -6,25 +6,25 @@
   <title>PoisonBug — Collectible Card Shop</title>
   <meta name="description" content="PoisonBug Card Shop — Browse, search, and buy collectible cards listed by the owner." />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=4" />
+  <link rel="stylesheet" href="./styles.css?v=5" />
 </head>
 <body>
   <!-- VERY VERY TOP OF THE SCREEN: THE LITTLE PURPLE BUG -->
   <div class="top-crown" id="top-crown">
     <button class="purple-bug-mascot" id="purple-bug-btn" type="button" aria-label="Little Purple Poison Bug">
-      <svg class="bug-svg" viewBox="0 0 120 120" width="38" height="38" aria-hidden="true">
+      <svg class="bug-svg" id="top-bug-svg" viewBox="0 0 120 120" width="38" height="38" aria-hidden="true">
         <defs>
           <radialGradient id="topShellGrad" cx="40%" cy="35%" r="65%">
-            <stop offset="0%" stop-color="#e879f9"/>
-            <stop offset="55%" stop-color="#9333ea"/>
-            <stop offset="100%" stop-color="#4c1d95"/>
+            <stop id="bug-shell-stop-1" offset="0%" stop-color="#e879f9"/>
+            <stop id="bug-shell-stop-2" offset="55%" stop-color="#9333ea"/>
+            <stop id="bug-shell-stop-3" offset="100%" stop-color="#4c1d95"/>
           </radialGradient>
           <linearGradient id="topHeadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#7e22ce"/>
-            <stop offset="100%" stop-color="#2e1065"/>
+            <stop id="bug-head-stop-1" offset="0%" stop-color="#7e22ce"/>
+            <stop id="bug-head-stop-2" offset="100%" stop-color="#2e1065"/>
           </linearGradient>
         </defs>
-        <g class="bug-legs" stroke="#c084fc" stroke-width="5" stroke-linecap="round" fill="none">
+        <g class="bug-legs" id="bug-legs-group" stroke="#c084fc" stroke-width="5" stroke-linecap="round" fill="none">
           <path d="M35 55 L13 44"/>
           <path d="M32 72 L10 72"/>
           <path d="M36 88 L15 101"/>
@@ -32,37 +32,42 @@
           <path d="M88 72 L110 72"/>
           <path d="M84 88 L105 101"/>
         </g>
-        <g class="bug-antennae" stroke="#d8b4fe" stroke-width="4" stroke-linecap="round" fill="none">
+        <g class="bug-antennae" id="bug-antennae-group" stroke="#d8b4fe" stroke-width="4" stroke-linecap="round" fill="none">
           <path d="M48 28 Q37 9 25 12"/>
           <path d="M72 28 Q83 9 95 12"/>
-          <circle cx="24" cy="12" r="5" fill="#4ade80" stroke="none"/>
-          <circle cx="96" cy="12" r="5" fill="#4ade80" stroke="none"/>
+          <circle class="bug-spot-accent" cx="24" cy="12" r="5" fill="#4ade80" stroke="none"/>
+          <circle class="bug-spot-accent" cx="96" cy="12" r="5" fill="#4ade80" stroke="none"/>
         </g>
         <ellipse cx="60" cy="36" rx="20" ry="15" fill="url(#topHeadGrad)" stroke="#d8b4fe" stroke-width="2.2"/>
-        <circle cx="51" cy="32" r="4.5" fill="#4ade80"/>
-        <circle cx="69" cy="32" r="4.5" fill="#4ade80"/>
+        <circle class="bug-spot-accent" cx="51" cy="32" r="4.5" fill="#4ade80"/>
+        <circle class="bug-spot-accent" cx="69" cy="32" r="4.5" fill="#4ade80"/>
         <circle cx="52" cy="31" r="1.8" fill="#ffffff"/>
         <circle cx="70" cy="31" r="1.8" fill="#ffffff"/>
-        <ellipse cx="60" cy="72" rx="30" ry="34" fill="url(#topShellGrad)" stroke="#f0abfc" stroke-width="2.8"/>
+        <ellipse id="bug-body-shell" cx="60" cy="72" rx="30" ry="34" fill="url(#topShellGrad)" stroke="#f0abfc" stroke-width="2.8"/>
         <line x1="60" y1="39" x2="60" y2="105" stroke="#2e1065" stroke-width="2.5"/>
-        <circle cx="46" cy="58" r="5.5" fill="#f0abfc" opacity="0.9"/>
-        <circle cx="74" cy="58" r="5.5" fill="#f0abfc" opacity="0.9"/>
-        <circle cx="44" cy="78" r="7" fill="#4ade80" opacity="0.85"/>
-        <circle cx="76" cy="78" r="7" fill="#4ade80" opacity="0.85"/>
-        <circle cx="50" cy="94" r="4" fill="#d8b4fe" opacity="0.9"/>
-        <circle cx="70" cy="94" r="4" fill="#d8b4fe" opacity="0.9"/>
+        <circle class="bug-spot-secondary" cx="46" cy="58" r="5.5" fill="#f0abfc" opacity="0.9"/>
+        <circle class="bug-spot-secondary" cx="74" cy="58" r="5.5" fill="#f0abfc" opacity="0.9"/>
+        <circle class="bug-spot-accent" cx="44" cy="78" r="7" fill="#4ade80" opacity="0.85"/>
+        <circle class="bug-spot-accent" cx="76" cy="78" r="7" fill="#4ade80" opacity="0.85"/>
+        <circle class="bug-spot-secondary" cx="50" cy="94" r="4" fill="#d8b4fe" opacity="0.9"/>
+        <circle class="bug-spot-secondary" cx="70" cy="94" r="4" fill="#d8b4fe" opacity="0.9"/>
         <ellipse cx="47" cy="52" rx="6" ry="11" transform="rotate(-20 47 52)" fill="#ffffff" opacity="0.28"/>
       </svg>
       <span class="bug-speech" id="bug-speech">Bzz! Welcome to PoisonBug!</span>
     </button>
   </div>
 
+  <!-- OPTIONAL CUSTOM ANNOUNCEMENT BANNER -->
+  <div class="announcement-banner hidden" id="announcement-banner">
+    <span id="announcement-banner-text">🔥 Welcome to PoisonBug! Scroll down for cards &amp; prices!</span>
+  </div>
+
   <!-- STICKY TOP HEADER WITH SEARCH BAR -->
   <header class="site-header" id="site-header">
     <div class="header-inner">
       <a href="#top-crown" class="brand-logo" aria-label="PoisonBug Home">
-        <span class="brand-poison">Poison</span><span class="brand-bug">Bug</span>
-        <span class="brand-tag">CARDS</span>
+        <span class="brand-poison" id="brand-first">Poison</span><span class="brand-bug" id="brand-second">Bug</span>
+        <span class="brand-tag" id="brand-tag">CARDS</span>
       </a>
 
       <!-- SEARCH BAR AT THE TOP OF THE SCREEN -->
@@ -83,6 +88,11 @@
       </div>
 
       <div class="header-actions">
+        <button type="button" id="customize-open-btn" class="btn btn-customize" title="Customize Shop Theme, Layout, Bug &amp; Options">
+          <span>🎨</span>
+          <span class="customize-btn-label">Customize</span>
+        </button>
+
         <button type="button" id="list-card-btn" class="btn btn-owner">
           <span class="owner-lock-icon" id="owner-lock-icon">🔒</span>
           <span>List a Card</span>
@@ -106,9 +116,10 @@
         <div class="owner-status">
           <span class="owner-dot"></span>
           <strong>Owner Mode Unlocked</strong>
-          <span class="owner-sub">You can list new cards, edit prices, or view orders.</span>
+          <span class="owner-sub">You can list new cards, edit cards &amp; prices, customize the store, or view orders.</span>
         </div>
         <div class="owner-bar-buttons">
+          <button type="button" class="btn-chip" id="owner-customize-btn">🎨 Customize Shop</button>
           <button type="button" class="btn-chip" id="owner-orders-btn">📦 Orders &amp; Earnings</button>
           <button type="button" class="btn-chip" id="owner-change-pin-btn">🔑 Change PIN</button>
           <button type="button" class="btn-chip btn-chip-danger" id="owner-lock-btn">Lock Owner Mode</button>
@@ -123,22 +134,22 @@
       <div class="hero-glow hero-glow-left" aria-hidden="true"></div>
       <div class="hero-glow hero-glow-right" aria-hidden="true"></div>
 
-      <div class="hero-content">
+      <div class="hero-content" id="hero-content-grid">
         <div class="hero-text">
           <div class="hero-pill">
             <span class="pill-dot"></span>
             <span id="hero-available-count">Loading cards...</span>
           </div>
           <h1 class="hero-title">
-            Find Your Next Favorite <span class="gradient-text">Trading Card</span>
+            <span id="hero-title-main">Find Your Next Favorite</span> <span class="gradient-text" id="hero-title-highlight">Trading Card</span>
           </h1>
-          <p class="hero-subtitle">
+          <p class="hero-subtitle" id="hero-subtitle-text">
             Every card is photographed and listed directly by the PoisonBug shop owner.
             Use the search bar above or <strong>scroll down a little bit</strong> to reveal all cards for sale and their prices!
           </p>
           <div class="hero-cta-row">
             <a href="#cards-section" class="btn btn-primary btn-scroll-cta" id="scroll-to-cards-btn">
-              <span>Scroll Down for Cards &amp; Prices</span>
+              <span id="scroll-to-cards-text">Scroll Down for Cards &amp; Prices</span>
               <span class="bounce-arrow">↓</span>
             </a>
             <button type="button" class="btn btn-secondary" id="hero-list-btn">
@@ -153,7 +164,7 @@
             <!-- Populated dynamically from the top listed cards -->
           </div>
           <div class="showcase-caption">
-            <span>✨ Scroll down to see sale prices &amp; buy!</span>
+            <span id="showcase-caption-text">✨ Scroll down to see sale prices &amp; buy!</span>
           </div>
         </div>
       </div>
@@ -168,8 +179,8 @@
     <section class="cards-section" id="cards-section">
       <div class="section-header">
         <div>
-          <span class="section-eyebrow">POISONBUG MARKETPLACE</span>
-          <h2 class="section-title">Cards For Sale</h2>
+          <span class="section-eyebrow" id="section-eyebrow-text">POISONBUG MARKETPLACE</span>
+          <h2 class="section-title" id="section-title-text">Cards For Sale</h2>
         </div>
 
         <div class="controls-bar">
@@ -413,30 +424,335 @@
     </div>
   </div>
 
-  <!-- MODAL: EDIT CARD PRICE -->
+  <!-- MODAL: EDIT LISTED CARD (PRICE, NAME, GRADE, FINISH, DETAILS, PHOTO) -->
   <div class="modal-overlay hidden" id="edit-price-modal">
-    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="edit-price-title">
+    <div class="modal-card modal-md" role="dialog" aria-modal="true" aria-labelledby="edit-price-title">
       <div class="modal-header">
-        <h3 id="edit-price-title">🏷️ Update Sale Price</h3>
+        <h3 id="edit-price-title">✏️ Edit Listed Card</h3>
         <button type="button" class="icon-close-btn" data-close-modal="edit-price-modal" aria-label="Close">✕</button>
       </div>
       <form id="edit-price-form">
         <input type="hidden" id="edit-card-id" />
         <p class="modal-desc" id="edit-card-name-label"></p>
-        <div class="form-group">
-          <label for="edit-price-input">New Sale Price ($)</label>
-          <div class="price-input-wrap">
-            <span class="currency-prefix">$</span>
-            <input type="number" id="edit-price-input" required min="0.01" max="99999" step="0.01" />
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="edit-name-input">Card Name <span class="req">*</span></label>
+            <input type="text" id="edit-name-input" required maxlength="80" />
+          </div>
+          <div class="form-group">
+            <label for="edit-price-input">Sale Price <span class="req">*</span></label>
+            <div class="price-input-wrap">
+              <span class="currency-prefix" id="edit-currency-prefix">$</span>
+              <input type="number" id="edit-price-input" required min="0.01" max="99999" step="0.01" />
+            </div>
           </div>
         </div>
+
+        <div class="form-row-equal">
+          <div class="form-group">
+            <label for="edit-grade-input">Card Grade <span class="req">*</span></label>
+            <select id="edit-grade-input" required></select>
+          </div>
+          <div class="form-group">
+            <label for="edit-finish-input">Foil / Card Finish <span class="req">*</span></label>
+            <select id="edit-finish-input" required></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-desc-input">Card Details (Optional)</label>
+          <textarea id="edit-desc-input" rows="2" maxlength="240"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-image-input">Swap Card Photo (Optional)</label>
+          <input type="file" id="edit-image-input" accept="image/*" />
+        </div>
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close-modal="edit-price-modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Price</button>
+          <button type="submit" class="btn btn-primary">Save Card Changes</button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- SHOP CUSTOMIZER STUDIO DRAWER -->
+  <div class="drawer-backdrop hidden" id="customizer-backdrop"></div>
+  <aside class="customizer-drawer hidden" id="customizer-drawer" aria-label="Shop Customizer Studio">
+    <div class="drawer-header customizer-header">
+      <div>
+        <span class="customizer-eyebrow">LIVE DESIGN STUDIO</span>
+        <h3>🎨 Customize Your Shop</h3>
+      </div>
+      <button type="button" class="icon-close-btn" id="close-customizer-btn" aria-label="Close customizer">✕</button>
+    </div>
+
+    <div class="customizer-tabs" role="tablist" aria-label="Customization sections">
+      <button type="button" class="cust-tab active" data-cust-tab="theme">🎨 Theme</button>
+      <button type="button" class="cust-tab" data-cust-tab="bug">🪲 Bug &amp; Brand</button>
+      <button type="button" class="cust-tab" data-cust-tab="cards">🃏 Cards &amp; Grid</button>
+      <button type="button" class="cust-tab" data-cust-tab="content">✏️ Texts &amp; Tags</button>
+    </div>
+
+    <div class="drawer-body customizer-body">
+      <!-- TAB 1: THEME & COLORS -->
+      <div class="cust-panel" data-cust-panel="theme">
+        <div class="cust-section">
+          <span class="cust-label">1-Click Theme Presets</span>
+          <div class="preset-grid" id="theme-presets-grid">
+            <!-- Populated dynamically with 8 presets -->
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Custom Palette Colors</span>
+          <div class="color-picker-grid">
+            <label class="color-Swatch-row">
+              <span>Primary Glow</span>
+              <input type="color" id="cust-color-primary" value="#d946ef" />
+            </label>
+            <label class="color-Swatch-row">
+              <span>Price &amp; Buy Accent</span>
+              <input type="color" id="cust-color-accent" value="#4ade80" />
+            </label>
+            <label class="color-Swatch-row">
+              <span>Page Background</span>
+              <input type="color" id="cust-color-bg" value="#0b0616" />
+            </label>
+            <label class="color-Swatch-row">
+              <span>Card Surface</span>
+              <input type="color" id="cust-color-card" value="#1c1236" />
+            </label>
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <div class="form-group">
+            <label for="cust-bg-pattern">Background Atmosphere</label>
+            <select id="cust-bg-pattern">
+              <option value="glow">Radial Aura Glow (Default)</option>
+              <option value="grid">Cyber Collector Grid</option>
+              <option value="dots">Starfield Holo Dots</option>
+              <option value="stripes">Diagonal Foil Stripes</option>
+              <option value="minimal">Clean Solid Minimal</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-font-style">Shop Typography</label>
+            <select id="cust-font-style">
+              <option value="modern">Modern Sans (Inter / System)</option>
+              <option value="display">Bold Geometric Display</option>
+              <option value="arcade">Retro Arcade / Tech Mono</option>
+              <option value="serif">Collector Prestigious Serif</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: TOP BUG MASCOT & BRANDING -->
+      <div class="cust-panel hidden" data-cust-panel="bug">
+        <div class="cust-section">
+          <span class="cust-label">Shop Name &amp; Logo Badge</span>
+          <div class="form-row-equal">
+            <div class="form-group">
+              <label for="cust-brand-first">Name Part 1</label>
+              <input type="text" id="cust-brand-first" maxlength="24" placeholder="Poison" />
+            </div>
+            <div class="form-group">
+              <label for="cust-brand-second">Name Part 2</label>
+              <input type="text" id="cust-brand-second" maxlength="24" placeholder="Bug" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cust-brand-tag">Logo Tag Pill</label>
+            <input type="text" id="cust-brand-tag" maxlength="18" placeholder="CARDS" />
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Top Bug Mascot Customizer</span>
+          <div class="color-picker-grid">
+            <label class="color-Swatch-row">
+              <span>Bug Shell Color</span>
+              <input type="color" id="cust-bug-shell" value="#9333ea" />
+            </label>
+            <label class="color-Swatch-row">
+              <span>Bug Spots &amp; Eyes</span>
+              <input type="color" id="cust-bug-spots" value="#4ade80" />
+            </label>
+          </div>
+
+          <div class="form-group" style="margin-top:10px;">
+            <label for="cust-bug-size">Bug Mascot Size: <strong id="cust-bug-size-val">38px</strong></label>
+            <input type="range" id="cust-bug-size" min="26" max="58" step="2" value="38" class="cust-range" />
+          </div>
+
+          <div class="form-group">
+            <label for="cust-bug-anim">Bug Animation Style</label>
+            <select id="cust-bug-anim">
+              <option value="float">Gentle Hover Float (Default)</option>
+              <option value="bounce">Energetic Bouncy Hop</option>
+              <option value="pulse">Neon Pulse Glow</option>
+              <option value="still">Still / No Motion</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-bug-messages">Bug Speech Bubble Lines (1 per line)</label>
+            <textarea id="cust-bug-messages" rows="4" placeholder="Bzz! Welcome to PoisonBug!"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: CARDS & GRID LAYOUT -->
+      <div class="cust-panel hidden" data-cust-panel="cards">
+        <div class="cust-section">
+          <span class="cust-label">Grid Density &amp; Card Frame</span>
+          <div class="form-group">
+            <label for="cust-grid-density">Cards Per Row / Layout</label>
+            <select id="cust-grid-density">
+              <option value="compact">Compact Grid (4–5 per row)</option>
+              <option value="standard">Standard Grid (3–4 per row)</option>
+              <option value="large">Large Showcase (2–3 per row)</option>
+              <option value="list">Wide Collector List View</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-card-frame">Card Frame Style</label>
+            <select id="cust-card-frame">
+              <option value="neon">Classic Neon Glow (Default)</option>
+              <option value="slab">Graded Slab Case (PSA Style)</option>
+              <option value="glass">Frosted Crystal Glass</option>
+              <option value="sharp">Sharp Tournament Frame</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-card-radius">Card Corner Roundness: <strong id="cust-card-radius-val">18px</strong></label>
+            <input type="range" id="cust-card-radius" min="4" max="28" step="2" value="18" class="cust-range" />
+          </div>
+
+          <div class="form-group">
+            <label for="cust-image-fit">Card Photo Fit</label>
+            <select id="cust-image-fit">
+              <option value="contain">Contain (Show Full Card Border)</option>
+              <option value="cover">Cover (Fill Entire Image Frame)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Interactive Card &amp; Price Behavior</span>
+          <label class="cust-toggle-row">
+            <span>✨ 3D Tilt &amp; Holo Shimmer on Hover</span>
+            <input type="checkbox" id="cust-holo-tilt" checked />
+          </label>
+
+          <div class="form-group" style="margin-top:10px;">
+            <label for="cust-price-reveal">Sale Price Display Mode</label>
+            <select id="cust-price-reveal">
+              <option value="scroll">Reveal prices as you scroll down (Default)</option>
+              <option value="always">Always show prices immediately</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-currency">Currency Symbol</label>
+            <select id="cust-currency">
+              <option value="$">$ (USD)</option>
+              <option value="€">€ (EUR)</option>
+              <option value="£">£ (GBP)</option>
+              <option value="C$">C$ (CAD)</option>
+              <option value="A$">A$ (AUD)</option>
+              <option value="¥">¥ (JPY)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: TEXTS, BANNER & CUSTOM GRADES/FINISHES -->
+      <div class="cust-panel hidden" data-cust-panel="content">
+        <div class="cust-section">
+          <span class="cust-label">Top Announcement Banner</span>
+          <label class="cust-toggle-row">
+            <span>📢 Show Announcement Banner</span>
+            <input type="checkbox" id="cust-banner-enabled" />
+          </label>
+          <div class="form-group" style="margin-top:8px;">
+            <input type="text" id="cust-banner-text" maxlength="140" placeholder="🔥 Free sleeve &amp; toploader with every card!" />
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Hero &amp; Marketplace Text</span>
+          <div class="form-group">
+            <label for="cust-hero-main">Hero Headline Start</label>
+            <input type="text" id="cust-hero-main" maxlength="60" placeholder="Find Your Next Favorite" />
+          </div>
+          <div class="form-group">
+            <label for="cust-hero-highlight">Hero Highlighted Gradient Words</label>
+            <input type="text" id="cust-hero-highlight" maxlength="40" placeholder="Trading Card" />
+          </div>
+          <div class="form-group">
+            <label for="cust-hero-sub">Hero Subtitle</label>
+            <textarea id="cust-hero-sub" rows="2" maxlength="220"></textarea>
+          </div>
+          <label class="cust-toggle-row" style="margin-bottom:10px;">
+            <span>🃏 Show Floating Hero Card Stack</span>
+            <input type="checkbox" id="cust-show-showcase" checked />
+          </label>
+          <div class="form-row-equal">
+            <div class="form-group">
+              <label for="cust-section-title">Marketplace Heading</label>
+              <input type="text" id="cust-section-title" maxlength="40" placeholder="Cards For Sale" />
+            </div>
+            <div class="form-group">
+              <label for="cust-search-placeholder">Search Placeholder</label>
+              <input type="text" id="cust-search-placeholder" maxlength="60" placeholder="Search for the card you want..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Custom Card Grades (Mandatory Dropdown)</span>
+          <p class="cust-help">Customize the grades available when listing a card (e.g. Mint, Near Mint, PSA 10):</p>
+          <div class="tag-chip-list" id="cust-grades-list"></div>
+          <div class="tag-add-row">
+            <input type="text" id="cust-new-grade" maxlength="36" placeholder="Add grade (e.g. PSA 10 Gem Mint)" />
+            <button type="button" class="btn btn-secondary btn-sm" id="cust-add-grade-btn">+ Add</button>
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Custom Foil / Finishes (Mandatory Dropdown)</span>
+          <p class="cust-help">Customize the foil/normal finishes available when listing a card:</p>
+          <div class="tag-chip-list" id="cust-finishes-list"></div>
+          <div class="tag-add-row">
+            <input type="text" id="cust-new-finish" maxlength="42" placeholder="Add finish (e.g. Master Ball Foil)" />
+            <button type="button" class="btn btn-secondary btn-sm" id="cust-add-finish-btn">+ Add</button>
+          </div>
+        </div>
+
+        <div class="cust-section">
+          <span class="cust-label">Share / Backup Your Custom Theme</span>
+          <div class="cust-backup-btns">
+            <button type="button" class="btn btn-secondary btn-sm" id="cust-export-btn">⬇ Export JSON</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cust-import-btn">⬆ Import JSON</button>
+            <input type="file" id="cust-import-file" accept=".json,application/json" class="visually-hidden-file" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-footer customizer-footer">
+      <button type="button" class="btn btn-secondary btn-sm" id="cust-reset-btn">↺ Reset Defaults</button>
+      <button type="button" class="btn btn-primary btn-sm" id="cust-save-close-btn">✓ Done &amp; Save</button>
+    </div>
+  </aside>
 
   <!-- MODAL: CHANGE OWNER PIN -->
   <div class="modal-overlay hidden" id="change-pin-modal">
@@ -521,7 +837,7 @@
   <!-- TOAST NOTIFICATION -->
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="./seed-cards.js?v=4"></script>
-  <script src="./app.js?v=4"></script>
+  <script src="./seed-cards.js?v=5"></script>
+  <script src="./app.js?v=5"></script>
 </body>
 </html>
